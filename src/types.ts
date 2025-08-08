@@ -68,6 +68,19 @@ export interface CliOptions {
   scanner?: string;
   verbose?: boolean;
   detailsUrl?: string;
+  ignoreConfig?: string; // 忽略規則配置檔案路徑
   notifyConfig?: string; // 通知器配置檔案路徑
   outputFile?: string;
+}
+
+// 標準化後的 CLI 選項（包含所有預設值）
+export interface NormalizedCliOptions {
+  input: string;
+  reporterTitle: string;
+  scanner: string;
+  verbose: boolean;
+  detailsUrl?: string;
+  ignoreConfig: string;
+  notifyConfig: string;
+  outputFile: string;
 }

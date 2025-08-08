@@ -9,7 +9,7 @@ import { ExcelReporter } from './reporters/excel-reporter.js';
 import { NotifierRegistry } from './notifiers/notifier-registry.js';
 import { NotifyConfigLoader } from './utils/notify-config-loader.js';
 import { ResultLogger } from './utils/result-logger.js';
-import type { CliOptions, NotifierConfig } from './types.js';
+import type { CliOptions, NormalizedCliOptions } from './types.js';
 
 const program = new Command();
 
@@ -21,21 +21,39 @@ program
 program
   .requiredOption('-i, --input <file>', '掃描報告 JSON 檔案路徑 (支援 Trivy 等格式)')
   .requiredOption('-t, --reporter-title <title>', '報告標題')
-  .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy), 預設: auto')
-  .option('-v, --verbose', '顯示詳細的漏洞資訊')
+  .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy)', 'auto')
+  .option('-v, --verbose', '顯示詳細的漏洞資訊', false)
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
-  .option('-n, --notify-config <file>', '通知器配置檔案路徑 (可選，支援 .yml/.yaml), 預設')
-  .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx)')
+  .option('--ignore-config <file>', '忽略規則配置檔案路徑', '.vuln-ignore.yml')
+  .option('-n, --notify-config <file>', '通知器配置檔案路徑', '.vuln-notify.yml')
+  .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑', 'vulnerability-report.xlsx')
   .action(async (options: CliOptions) => {
     try {
-      await processVulnerabilityReport(options);
+      const normalizedOptions = normalizeOptions(options);
+      await processVulnerabilityReport(normalizedOptions);
     } catch (error) {
       console.error('❌ 執行失敗:', error instanceof Error ? error.message : error);
       process.exit(1);
     }
   });
 
-async function processVulnerabilityReport(options: CliOptions): Promise<void> {
+/**
+ * 標準化 CLI 選項，補齊所有預設值
+ */
+function normalizeOptions(options: CliOptions): NormalizedCliOptions {
+  return {
+    input: options.input,
+    reporterTitle: options.reporterTitle,
+    scanner: options.scanner || 'auto',
+    verbose: options.verbose || false,
+    detailsUrl: options.detailsUrl,
+    ignoreConfig: options.ignoreConfig || '.vuln-ignore.yml',
+    notifyConfig: options.notifyConfig || '.vuln-notify.yml',
+    outputFile: options.outputFile || 'vulnerability-report.xlsx',
+  };
+}
+
+async function processVulnerabilityReport(options: NormalizedCliOptions): Promise<void> {
   console.log('🔍 開始處理漏洞掃描報告...');
 
   // 1. 讀取並解析掃描報告
@@ -48,7 +66,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
 
   // 3. 自動檢測或手動指定解析器
   let parserResult;
-  if (options.scanner && options.scanner !== 'auto') {
+  if (options.scanner !== 'auto') {
     const parser = parserRegistry.getParser(options.scanner);
     if (!parser) {
       throw new Error(
@@ -67,9 +85,9 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   console.log(`✅ 解析完成，發現 ${vulnerabilities.length} 個漏洞`);
 
   // 5. 載入忽略規則
-  console.log('📋 載入漏洞忽略規則...');
+  console.log(`📋 載入漏洞忽略規則: ${options.ignoreConfig}`);
   const configLoader = new ConfigLoader();
-  const ignoreConfig = await configLoader.loadConfig('.vuln-ignore.yml');
+  const ignoreConfig = await configLoader.loadConfig(options.ignoreConfig);
   console.log(`✅ 載入 ${ignoreConfig.rules.length} 條忽略規則`);
 
   // 6. 套用忽略規則並生成摘要
@@ -83,8 +101,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   const { totalNew } = resultLogger.calculateTotals(summary);
 
   // 7. 生成 Excel 報告
-  const outputFile = options.outputFile || 'vulnerability-report.xlsx';
-  const outputPath = path.resolve(outputFile);
+  const outputPath = path.resolve(options.outputFile);
 
   console.log(`📊 生成 Excel 報告: ${outputPath}`);
   const excelReporter = new ExcelReporter();
@@ -100,19 +117,10 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   console.log('✅ Excel 報告生成完成');
 
   // 8. 載入通知器配置並發送通知
+  console.log(`📋 載入通知器配置: ${options.notifyConfig}`);
   const notifyConfigLoader = new NotifyConfigLoader();
-  let notifierConfigs: NotifierConfig[] = [];
-
-  // 優先級：命令列指定配置檔案 > 預設配置檔案
-  if (options.notifyConfig) {
-    console.log(`📋 載入指定的通知器配置: ${options.notifyConfig}`);
-    const config = await notifyConfigLoader.loadNotifyConfig(options.notifyConfig);
-    notifierConfigs = config.notifiers;
-  } else {
-    // 嘗試載入預設配置檔案
-    const defaultConfig = await notifyConfigLoader.loadDefaultNotifyConfig();
-    notifierConfigs = defaultConfig.notifiers;
-  }
+  const config = await notifyConfigLoader.loadNotifyConfig(options.notifyConfig);
+  const notifierConfigs = config.notifiers;
 
   // 發送通知
   if (notifierConfigs.length > 0) {
