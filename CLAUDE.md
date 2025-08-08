@@ -12,12 +12,15 @@
 - 透過 Adapter 架構支援多種通知平台（Teams 等）
 - 管理漏洞忽略規則
 - 提供詳細的漏洞資訊輸出
+- 支援 CI/CD 整合，可自定義退出碼行為
 
 ## 專案結構
 
 ```
 vuln-reporter/
 ├── src/                    # 主要源碼
+│   ├── core/              # 核心處理邏輯
+│   │   └── vulnerability-processor.ts # 漏洞處理核心類別
 │   ├── parsers/           # 掃描工具解析器 (Adapter 架構)
 │   │   ├── trivy-parser.ts      # Trivy 適配器
 │   │   └── parser-registry.ts   # 解析器註冊表與調度器
@@ -32,10 +35,16 @@ vuln-reporter/
 │   │   ├── ignore-filter.ts     # 忽略規則過濾器
 │   │   ├── config-loader.ts     # 忽略規則配置載入器
 │   │   ├── notify-config-loader.ts # 通知器配置載入器
-│   │   └── result-logger.ts     # 結果輸出記錄器
+│   │   ├── result-logger.ts     # 結果輸出記錄器
+│   │   └── normalizeOptions.ts  # CLI 選項標準化
 │   ├── types.ts           # 通用 TypeScript 類型定義
 │   └── cli.ts             # CLI 主程式
 ├── tests/                 # 測試檔案
+│   ├── core/              # 核心邏輯測試
+│   ├── parsers/           # 解析器測試
+│   ├── reporters/         # 報告器測試
+│   ├── notifiers/         # 通知器測試
+│   └── utils/             # 工具函數測試
 ├── examples/              # 範例檔案
 │   ├── trivy-report-sample.json
 │   ├── .vuln-ignore.yml
@@ -60,6 +69,7 @@ vuln-reporter/
 pnpm test
 
 # 執行特定測試檔案
+pnpm test tests/core/vulnerability-processor.test.ts
 pnpm test tests/parsers/trivy-parser.test.ts
 pnpm test tests/parsers/parser-registry.test.ts
 pnpm test tests/utils/ignore-filter.test.ts
@@ -110,17 +120,27 @@ examples\run-example.bat
 
 ### 設計原則
 
-1. **TDD 開發**: 所有功能都有對應測試（目前 64 個測試案例）
+1. **TDD 開發**: 所有功能都有對應測試（目前 80 個測試案例）
 2. **Adapter 架構**: 支援多種掃描工具和通知平台的擴展性設計
 3. **模組化設計**: 每個功能獨立模組，職責清晰分離
-4. **類型安全**: 完整的 TypeScript 類型定義
-5. **標準化處理**: 統一的 `StandardVulnerability` 和 `NotificationData` 格式
-6. **配置驅動**: 透過 YAML 配置檔案管理忽略規則和通知器
-7. **錯誤處理**: 完善的錯誤處理和使用者提示
+4. **核心處理器**: 使用 `VulnerabilityProcessor` 統一處理流程
+5. **類型安全**: 完整的 TypeScript 類型定義
+6. **標準化處理**: 統一的 `StandardVulnerability` 和 `NotificationData` 格式
+7. **配置驅動**: 透過 YAML 配置檔案管理忽略規則和通知器
+8. **錯誤處理**: 完善的錯誤處理和使用者提示
+9. **CI/CD 友善**: 可自定義退出碼行為，適應不同部署需求
 
 ## 功能模組
 
-### 1. 解析器系統 (Adapter 架構)
+### 1. 核心處理器 (`src/core/vulnerability-processor.ts`)
+
+- 統一的漏洞處理流程管理
+- 整合所有功能模組（解析、過濾、報告、通知）
+- 支援選項標準化和預設值處理
+- 提供退出碼控制邏輯
+- 測試: `tests/core/vulnerability-processor.test.ts`
+
+### 2. 解析器系統 (Adapter 架構)
 
 #### 解析器註冊表 (`src/parsers/parser-registry.ts`)
 
@@ -169,6 +189,12 @@ examples\run-example.bat
 - 讀取 YAML 忽略規則配置
 - 驗證配置格式
 - 測試: `tests/utils/config-loader.test.ts`
+
+#### 選項標準化 (`src/utils/normalizeOptions.ts`)
+
+- 標準化 CLI 選項，提供預設值
+- 確保選項一致性和向後相容性
+- 支援 `exitOnHighSeverity` 等新選項
 
 ### 4. Excel 報告生成器 (`src/reporters/excel-reporter.ts`)
 
