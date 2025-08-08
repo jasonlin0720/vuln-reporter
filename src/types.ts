@@ -38,12 +38,37 @@ export interface VulnerabilitySummary {
   low: { new: number; ignored: number; total: number };
 }
 
+// 通知器資料介面
+export interface NotificationData {
+  summary: VulnerabilitySummary;
+  reportTitle: string;
+  detailsUrl?: string;
+}
+
+// 通知器適配器介面
+export interface Notifier {
+  sendNotification(data: NotificationData, config: Record<string, any>): Promise<void>;
+}
+
+// 通知器配置介面
+export interface NotifierConfig {
+  type: string; // 通知器類型，例如 'teams', 'slack', 'discord'
+  config: Record<string, any>; // 各通知器專用配置
+  enabled?: boolean; // 是否啟用，預設 true
+}
+
+// 通知器配置檔案結構
+export interface NotifyConfig {
+  notifiers: NotifierConfig[];
+}
+
 export interface CliOptions {
   input: string;
   reporterTitle: string;
   scanner?: string;
   verbose?: boolean;
   detailsUrl?: string;
-  teamsWebhookUrl?: string;
+  teamsWebhookUrl?: string; // 向後相容性保留
+  notifyConfig?: string; // 新增：通知器配置檔案路徑
   outputFile?: string;
 }

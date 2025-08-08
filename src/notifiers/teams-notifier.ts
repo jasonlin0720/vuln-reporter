@@ -1,5 +1,5 @@
 import { ofetch } from 'ofetch';
-import type { VulnerabilitySummary } from '../types.js';
+import type { VulnerabilitySummary, Notifier, NotificationData } from '../types.js';
 
 export interface TeamsNotificationData {
   webhookUrl: string;
@@ -8,8 +8,24 @@ export interface TeamsNotificationData {
   detailsUrl?: string;
 }
 
-export class TeamsNotifier {
-  async sendNotification(data: TeamsNotificationData): Promise<void> {
+export interface TeamsConfig {
+  webhookUrl: string;
+}
+
+export class TeamsNotifier implements Notifier {
+  // 新的 Adapter 介面方法
+  async sendNotification(data: NotificationData, config: TeamsConfig): Promise<void> {
+    const teamsData: TeamsNotificationData = {
+      webhookUrl: config.webhookUrl,
+      summary: data.summary,
+      reportTitle: data.reportTitle,
+      detailsUrl: data.detailsUrl,
+    };
+    return this.sendTeamsNotification(teamsData);
+  }
+
+  // 保留原有方法以維持向後相容性
+  async sendTeamsNotification(data: TeamsNotificationData): Promise<void> {
     try {
       const adaptiveCard = this.createAdaptiveCard(data);
 

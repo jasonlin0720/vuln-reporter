@@ -6,9 +6,10 @@ import { ParserRegistry } from './parsers/parser-registry.js';
 import { IgnoreFilter } from './utils/ignore-filter.js';
 import { ConfigLoader } from './utils/config-loader.js';
 import { ExcelReporter } from './reporters/excel-reporter.js';
-import { TeamsNotifier } from './notifiers/teams-notifier.js';
+import { NotifierRegistry } from './notifiers/notifier-registry.js';
+import { NotifyConfigLoader } from './utils/notify-config-loader.js';
 import { ResultLogger } from './utils/result-logger.js';
-import type { CliOptions } from './types.js';
+import type { CliOptions, NotifierConfig } from './types.js';
 
 const program = new Command();
 
@@ -23,7 +24,8 @@ program
   .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy), 預設: auto')
   .option('-v, --verbose', '顯示詳細的漏洞資訊')
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
-  .option('-w, --teams-webhook-url <url>', 'Microsoft Teams Webhook URL (可選)')
+  .option('-w, --teams-webhook-url <url>', 'Microsoft Teams Webhook URL (向後相容性保留)')
+  .option('-n, --notify-config <file>', '通知器配置檔案路徑 (可選，支援 .yml/.yaml), 預設')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx)')
   .action(async (options: CliOptions) => {
     try {
@@ -98,17 +100,45 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   );
   console.log('✅ Excel 報告生成完成');
 
-  // 8. 發送 Teams 通知 (如果提供 webhook URL)
-  if (options.teamsWebhookUrl) {
-    console.log('📢 發送 Microsoft Teams 通知...');
-    const teamsNotifier = new TeamsNotifier();
-    await teamsNotifier.sendNotification({
-      webhookUrl: options.teamsWebhookUrl,
-      summary,
-      reportTitle: options.reporterTitle,
-      detailsUrl: options.detailsUrl,
-    });
-    console.log('✅ Teams 通知發送完成');
+  // 8. 載入通知器配置並發送通知
+  const notifyConfigLoader = new NotifyConfigLoader();
+  let notifierConfigs: NotifierConfig[] = [];
+
+  // 優先級：命令列指定配置檔案 > CLI 參數 (向後相容) > 預設配置檔案
+  if (options.notifyConfig) {
+    console.log(`📋 載入指定的通知器配置: ${options.notifyConfig}`);
+    const config = await notifyConfigLoader.loadNotifyConfig(options.notifyConfig);
+    notifierConfigs = config.notifiers;
+  } else if (options.teamsWebhookUrl) {
+    console.log('📋 使用 CLI 參數建立 Teams 通知配置 (向後相容模式)');
+    notifierConfigs = notifyConfigLoader.createNotifyConfigFromCli(options.teamsWebhookUrl);
+  } else {
+    // 嘗試載入預設配置檔案
+    const defaultConfig = await notifyConfigLoader.loadDefaultNotifyConfig();
+    notifierConfigs = defaultConfig.notifiers;
+  }
+
+  // 發送通知
+  if (notifierConfigs.length > 0) {
+    console.log('📢 發送通知...');
+    const notifierRegistry = new NotifierRegistry();
+
+    try {
+      await notifierRegistry.sendNotifications(
+        {
+          summary,
+          reportTitle: options.reporterTitle,
+          detailsUrl: options.detailsUrl,
+        },
+        notifierConfigs,
+      );
+      console.log('✅ 所有通知發送完成');
+    } catch (error) {
+      console.error('❌ 通知發送失敗:', error instanceof Error ? error.message : error);
+      // 通知失敗不應該讓整個程式中斷，只記錄錯誤
+    }
+  } else {
+    console.log('ℹ️ 未配置通知器，跳過通知發送');
   }
 
   console.log('🎉 所有任務完成!');
