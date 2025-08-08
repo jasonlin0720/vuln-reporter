@@ -12,7 +12,7 @@
 - 🤖 **智能格式檢測**: 自動檢測掃描報告格式，無需手動指定
 - 🚫 **智能忽略機制**: 透過 YAML 配置檔案管理漏洞忽略規則
 - 📊 **Excel 報告生成**: 生成包含摘要和詳情的 Excel 報告
-- 📢 **Teams 通知整合**: 發送 Adaptive Cards 格式的 Teams 通知
+- 📢 **多通知器支援**: 透過 Adapter 架構支援多種通知平台（Teams 等），可擴展
 - 🔍 **詳細輸出模式**: 支援 verbose 模式顯示完整漏洞資訊
 - 🎯 **CI/CD 友善**: 根據漏洞嚴重性設定適當的退出碼
 - ⚡ **零配置啟動**: 開箱即用，無需複雜配置
@@ -41,21 +41,22 @@ pnpm dev --input scan-report.json --reporter-title "詳細掃描結果" --verbos
 # 手動指定掃描工具類型
 pnpm dev --input trivy-report.json --reporter-title "Trivy 掃描" --scanner trivy
 
-# 完整功能 - 包含 Teams 通知
-pnpm dev --input scan-report.json --reporter-title "生產環境掃描" --teams-webhook-url "YOUR_TEAMS_WEBHOOK_URL" --output-file "security-report.xlsx"
+# 完整功能 - 包含自定義配置
+pnpm dev --input scan-report.json --reporter-title "生產環境掃描" --notify-config custom-notify.yml --output-file "security-report.xlsx"
 ```
 
 ### 命令列參數
 
-| 參數                  | 短參數 | 必須 | 說明                                                     |
-| --------------------- | ------ | ---- | -------------------------------------------------------- |
-| `--input`             | `-i`   | ✅   | 掃描報告 JSON 檔案路徑（支援 Trivy 等格式）              |
-| `--reporter-title`    | `-t`   | ✅   | 報告標題                                                 |
-| `--scanner`           | `-s`   | ❌   | 指定掃描工具類型 (auto, trivy)，預設: auto               |
-| `--verbose`           | `-v`   | ❌   | 顯示詳細的漏洞資訊                                       |
-| `--details-url`       | `-d`   | ❌   | 詳細報告連結 (可選)                                      |
-| `--teams-webhook-url` | `-w`   | ❌   | Microsoft Teams Webhook URL (可選)                       |
-| `--output-file`       | `-o`   | ❌   | Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx) |
+| 參數               | 短參數 | 必須 | 預設值                      | 說明                                        |
+| ------------------ | ------ | ---- | --------------------------- | ------------------------------------------- |
+| `--input`          | `-i`   | ✅   | -                           | 掃描報告 JSON 檔案路徑（支援 Trivy 等格式） |
+| `--reporter-title` | `-t`   | ✅   | -                           | 報告標題                                    |
+| `--scanner`        | `-s`   | ❌   | `auto`                      | 指定掃描工具類型 (auto, trivy)              |
+| `--verbose`        | `-v`   | ❌   | `false`                     | 顯示詳細的漏洞資訊                          |
+| `--details-url`    | `-d`   | ❌   | -                           | 詳細報告連結 (可選)                         |
+| `--ignore-config`  | -      | ❌   | `.vuln-ignore.yml`          | 忽略規則配置檔案路徑                        |
+| `--notify-config`  | `-n`   | ❌   | `.vuln-notify.yml`          | 通知器配置檔案路徑                          |
+| `--output-file`    | `-o`   | ❌   | `vulnerability-report.xlsx` | Excel 報告輸出檔案路徑                      |
 
 ## 漏洞忽略機制
 
@@ -87,16 +88,39 @@ rules:
 - `package`: (可選) 特定套件名稱，提供更精確的匹配
 - `expires`: (可選) 忽略規則到期日期 (YYYY-MM-DD 格式)
 
-## Teams 通知設定
+## 通知器設定
 
-### 取得 Webhook URL
+### 通知器配置檔案
+
+在專案根目錄建立 `.vuln-notify.yml` 檔案來配置通知器：
+
+```yaml
+# .vuln-notify.yml
+notifiers:
+  # Microsoft Teams 通知
+  - type: teams
+    enabled: true
+    config:
+      webhookUrl: 'https://outlook.office.com/webhook/your-webhook-url-here'
+
+  # 未來可擴展的其他通知器範例：
+  # - type: slack
+  #   enabled: false
+  #   config:
+  #     webhookUrl: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  #     channel: "#security-alerts"
+```
+
+### Teams 通知設定
+
+#### 取得 Webhook URL
 
 1. 在 Teams 頻道中點選「...」→「連接器」
 2. 搜尋並設定「Incoming Webhook」
 3. 輸入名稱和圖片，取得 Webhook URL
-4. 在命令中使用 `--teams-webhook-url` 參數
+4. 將 URL 設定在 `.vuln-notify.yml` 配置檔案中
 
-### 通知內容
+#### 通知內容
 
 Teams 通知會包含：
 
@@ -104,6 +128,13 @@ Teams 通知會包含：
 - 🎨 根據嚴重程度的顏色主題
 - 🔗 詳細報告連結 (如果提供)
 - ⏰ 掃描時間戳記
+
+### 通知器架構
+
+本工具採用 Adapter 架構設計，支援多種通知平台：
+
+- ✅ **Teams**: 完整支援，發送 Adaptive Cards 格式通知
+- 🔧 **其他平台**: 可透過實作 `Notifier` 介面輕鬆新增 (Slack、Discord、Email 等)
 
 ## 範例
 
@@ -113,6 +144,7 @@ Teams 通知會包含：
 
 - `examples/trivy-report-sample.json`: 範例 Trivy 報告
 - `examples/.vuln-ignore.yml`: 範例忽略規則配置
+- `examples/.vuln-notify.yml`: 範例通知器配置
 - `examples/run-example.bat`: Windows 範例執行腳本
 - `examples/run-example.sh`: Linux/Mac 範例執行腳本
 
@@ -196,7 +228,7 @@ docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --ignore-unfixed --f
       --input trivy-report.json \
       --reporter-title "${{ github.repository }} Security Scan" \
       --details-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-      --teams-webhook-url "${{ secrets.TEAMS_WEBHOOK_URL }}"
+      --notify-config .vuln-notify.yml
 ```
 
 ### GitLab CI
@@ -209,7 +241,7 @@ security_report:
       --input trivy-report.json
       --reporter-title "${CI_PROJECT_NAME} Security Scan"
       --details-url "${CI_PIPELINE_URL}"
-      --teams-webhook-url "${TEAMS_WEBHOOK_URL}"
+      --notify-config .vuln-notify.yml
 ```
 
 ## 退出碼
@@ -221,9 +253,11 @@ security_report:
 
 ## 架構擴展性
 
-### 支援新掃描工具
+### Adapter 架構設計
 
-本工具採用 Adapter 架構設計，可輕易擴展支援新的漏洞掃描工具：
+本工具採用 Adapter 架構設計，具有高度擴展性：
+
+#### 支援新掃描工具
 
 ```typescript
 // 1. 建立新的掃描工具解析器
@@ -238,18 +272,49 @@ export class NewScannerParser implements VulnerabilityScanner {
 registry.registerParser('new-scanner', new NewScannerParser());
 ```
 
+#### 支援新通知平台
+
+```typescript
+// 1. 建立新的通知器
+export class SlackNotifier implements Notifier {
+  async sendNotification(data: NotificationData, config: SlackConfig): Promise<void> {
+    // 實作 Slack 通知邏輯
+  }
+}
+
+// 2. 在 NotifierRegistry 中註冊
+registry.registerNotifier('slack', new SlackNotifier());
+```
+
 ### 當前支援
+
+#### 掃描工具
 
 - ✅ **Trivy**: 完整支援，包含自動格式檢測
 - 🔧 **其他工具**: 可透過實作 `VulnerabilityScanner` 介面輕鬆新增
 
+#### 通知平台
+
+- ✅ **Microsoft Teams**: 完整支援，包含 Adaptive Cards 格式
+- 🔧 **其他平台**: 可透過實作 `Notifier` 介面輕鬆新增 (Slack、Discord、Email 等)
+
 ### 標準化格式
+
+#### 漏洞格式標準化
 
 所有掃描工具的報告都會轉換為統一的 `StandardVulnerability` 格式，確保：
 
 - 🔄 **格式一致**: 所有後續處理都基於統一格式
 - 🧪 **易於測試**: 標準化格式便於編寫測試
 - 🔧 **易於維護**: 新增工具不影響現有功能
+
+#### 通知格式標準化
+
+所有通知器都使用統一的 `NotificationData` 格式，確保：
+
+- 📢 **通知一致**: 所有平台都能接收相同的通知內容
+- 🔧 **易於擴展**: 新增通知平台不需要修改核心邏輯
+- ⚙️ **配置驅動**: 透過 YAML 配置檔案管理多個通知器
 
 ## 開發
 

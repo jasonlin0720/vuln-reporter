@@ -9,7 +9,7 @@
 - 解析多種漏洞掃描工具報告（目前支援 Trivy，可擴展）
 - 智能格式檢測與標準化處理
 - 生成 Excel 格式的詳細報告
-- 發送 Microsoft Teams 通知
+- 透過 Adapter 架構支援多種通知平台（Teams 等）
 - 管理漏洞忽略規則
 - 提供詳細的漏洞資訊輸出
 
@@ -25,10 +25,13 @@ vuln-reporter/
 │   │   ├── trivy-types.ts       # Trivy 專用類型
 │   │   └── [其他工具類型].ts    # 未來擴展用
 │   ├── reporters/         # Excel 報告生成器
-│   ├── notifiers/         # Teams 通知功能
+│   ├── notifiers/         # 通知器功能 (Adapter 架構)
+│   │   ├── teams-notifier.ts    # Teams 通知適配器
+│   │   └── notifier-registry.ts # 通知器註冊表與調度器
 │   ├── utils/             # 工具函數
 │   │   ├── ignore-filter.ts     # 忽略規則過濾器
-│   │   ├── config-loader.ts     # 配置載入器
+│   │   ├── config-loader.ts     # 忽略規則配置載入器
+│   │   ├── notify-config-loader.ts # 通知器配置載入器
 │   │   └── result-logger.ts     # 結果輸出記錄器
 │   ├── types.ts           # 通用 TypeScript 類型定義
 │   └── cli.ts             # CLI 主程式
@@ -63,7 +66,9 @@ pnpm test tests/utils/ignore-filter.test.ts
 pnpm test tests/utils/result-logger.test.ts
 pnpm test tests/reporters/excel-reporter.test.ts
 pnpm test tests/notifiers/teams-notifier.test.ts
+pnpm test tests/notifiers/notifier-registry.test.ts
 pnpm test tests/utils/config-loader.test.ts
+pnpm test tests/utils/notify-config-loader.test.ts
 ```
 
 ### 範例執行
@@ -78,9 +83,13 @@ pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報�
 # 指定掃描工具類型
 pnpm dev --input examples/trivy-report-sample.json --reporter-title "Trivy 報告" --scanner trivy
 
-# 包含忽略規則 (需要先複製範例配置)
+# 包含自定義配置檔案
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告" --ignore-config examples/.vuln-ignore.yml --notify-config examples/.vuln-notify.yml
+
+# 使用預設配置檔案 (需要先複製範例配置)
 cp examples/.vuln-ignore.yml .
-pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告 (套用忽略規則)" --verbose
+cp examples/.vuln-notify.yml .
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告 (套用預設配置)" --verbose
 
 # 執行範例腳本 (Windows)
 examples\run-example.bat
@@ -101,12 +110,13 @@ examples\run-example.bat
 
 ### 設計原則
 
-1. **TDD 開發**: 所有功能都有對應測試（目前 41 個測試案例）
-2. **Adapter 架構**: 支援多種掃描工具的擴展性設計
+1. **TDD 開發**: 所有功能都有對應測試（目前 64 個測試案例）
+2. **Adapter 架構**: 支援多種掃描工具和通知平台的擴展性設計
 3. **模組化設計**: 每個功能獨立模組，職責清晰分離
 4. **類型安全**: 完整的 TypeScript 類型定義
-5. **標準化處理**: 統一的 `StandardVulnerability` 格式
-6. **錯誤處理**: 完善的錯誤處理和使用者提示
+5. **標準化處理**: 統一的 `StandardVulnerability` 和 `NotificationData` 格式
+6. **配置驅動**: 透過 YAML 配置檔案管理忽略規則和通知器
+7. **錯誤處理**: 完善的錯誤處理和使用者提示
 
 ## 功能模組
 
@@ -167,11 +177,29 @@ examples\run-example.bat
 - 支援多語言欄位標題
 - 測試: `tests/reporters/excel-reporter.test.ts`
 
-### 5. Teams 通知器 (`src/notifiers/teams-notifier.ts`)
+### 5. 通知器系統 (Adapter 架構)
 
+#### 通知器註冊表 (`src/notifiers/notifier-registry.ts`)
+
+- 管理所有通知器
+- 統一發送通知到多個平台
+- 支援配置驅動的通知器管理
+- 測試: `tests/notifiers/notifier-registry.test.ts`
+
+#### Teams 通知器 (`src/notifiers/teams-notifier.ts`)
+
+- 實作 `Notifier` 介面
 - 發送 Adaptive Cards 通知
 - 根據嚴重性調整主題顏色
+- 支援新舊介面（向後相容）
 - 測試: `tests/notifiers/teams-notifier.test.ts`
+
+#### 通知器配置載入器 (`src/utils/notify-config-loader.ts`)
+
+- 載入 YAML 通知器配置
+- 支援多個通知器同時配置
+- 自動載入預設配置檔案
+- 測試: `tests/utils/notify-config-loader.test.ts`
 
 ## 安全注意事項
 
@@ -191,15 +219,23 @@ examples\run-example.bat
    - 檢查輸出目錄權限
    - 確認檔案未被其他程式開啟
 
-2. **Teams 通知失敗**
+2. **通知發送失敗**
+   - 檢查 `.vuln-notify.yml` 配置檔案格式
    - 驗證 Webhook URL 格式
    - 檢查網路連線
-   - 確認 Teams 頻道設定正確
+   - 確認通知平台設定正確
 
 3. **忽略規則不生效**
-   - 確認 `.vuln-ignore.yml` 檔案位於專案根目錄
+   - 確認 `.vuln-ignore.yml` 檔案位於正確位置
    - 檢查 YAML 格式是否正確
    - 驗證 CVE ID 和套件名稱是否完全匹配
+   - 使用 `--ignore-config` 指定自定義配置檔案路徑
+
+4. **通知器配置問題**
+   - 確認 `.vuln-notify.yml` 檔案格式正確
+   - 檢查通知器類型是否支援
+   - 驗證各通知器的配置參數
+   - 使用 `--notify-config` 指定自定義配置檔案路徑
 
 ### 除錯模式
 
@@ -251,11 +287,44 @@ NODE_DEBUG=* pnpm dev --input examples/trivy-report-sample.json --reporter-title
    }
    ```
 
+#### 新增通知器
+
+1. **建立通知器類別**：
+
+   ```typescript
+   // src/notifiers/slack-notifier.ts
+   export class SlackNotifier implements Notifier {
+     async sendNotification(data: NotificationData, config: SlackConfig): Promise<void> {
+       // 實作 Slack 通知邏輯
+     }
+   }
+   ```
+
+2. **註冊通知器**：
+
+   ```typescript
+   // src/notifiers/notifier-registry.ts
+   constructor() {
+     this.registerNotifier('teams', new TeamsNotifier());
+     this.registerNotifier('slack', new SlackNotifier()); // 新增這行
+   }
+   ```
+
+3. **配置檔案支援**：
+   ```yaml
+   # .vuln-notify.yml
+   notifiers:
+     - type: slack
+       enabled: true
+       config:
+         webhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+         channel: '#security-alerts'
+   ```
+
 #### 其他擴展
 
 1. **新增報告格式**: 在 `src/reporters/` 建立新的報告生成器
-2. **整合新通知平台**: 在 `src/notifiers/` 實作新的通知器
-3. **新增工具函數**: 在 `src/utils/` 添加共用功能
+2. **新增工具函數**: 在 `src/utils/` 添加共用功能
 
 ### 開發要求
 
@@ -268,7 +337,11 @@ NODE_DEBUG=* pnpm dev --input examples/trivy-report-sample.json --reporter-title
 
 ### 架構優勢
 
-- **標準化**: 所有掃描工具都輸出 `StandardVulnerability` 格式
-- **解耦合**: 新工具不影響現有功能
+- **雙重標準化**:
+  - 掃描工具都輸出 `StandardVulnerability` 格式
+  - 通知器都使用 `NotificationData` 格式
+- **解耦合**: 新工具和通知器不影響現有功能
 - **可測試**: 每個組件都有獨立測試
-- **擴展性**: 輕鬆添加新的掃描工具支援
+- **擴展性**: 輕鬆添加新的掃描工具和通知平台支援
+- **配置驅動**: 透過 YAML 配置檔案管理複雜設定
+- **向後相容**: 保持 API 穩定性，支援漸進式升級
