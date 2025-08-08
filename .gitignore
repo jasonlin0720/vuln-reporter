@@ -8,3 +8,6 @@ coverage/
 *.tgz
 *.xlsx
 trivy-report.json
+
+*.local
+*.local.*
