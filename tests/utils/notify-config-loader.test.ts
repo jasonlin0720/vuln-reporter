@@ -91,24 +91,6 @@ notifiers:
     });
   });
 
-  describe('createNotifyConfigFromCli', () => {
-    it('should create teams config from CLI parameter', () => {
-      const webhookUrl = 'https://teams.example.com/webhook';
-      const configs = loader.createNotifyConfigFromCli(webhookUrl);
-
-      expect(configs).toHaveLength(1);
-      expect(configs[0].type).toBe('teams');
-      expect(configs[0].enabled).toBe(true);
-      expect(configs[0].config.webhookUrl).toBe(webhookUrl);
-    });
-
-    it('should return empty array when no webhook URL provided', () => {
-      const configs = loader.createNotifyConfigFromCli();
-
-      expect(configs).toEqual([]);
-    });
-  });
-
   describe('loadDefaultNotifyConfig', () => {
     it('should load first available default config file', async () => {
       const yamlContent = `

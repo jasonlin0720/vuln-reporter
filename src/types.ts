@@ -68,7 +68,6 @@ export interface CliOptions {
   scanner?: string;
   verbose?: boolean;
   detailsUrl?: string;
-  teamsWebhookUrl?: string; // 向後相容性保留
-  notifyConfig?: string; // 新增：通知器配置檔案路徑
+  notifyConfig?: string; // 通知器配置檔案路徑
   outputFile?: string;
 }

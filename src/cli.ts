@@ -24,7 +24,6 @@ program
   .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy), 預設: auto')
   .option('-v, --verbose', '顯示詳細的漏洞資訊')
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
-  .option('-w, --teams-webhook-url <url>', 'Microsoft Teams Webhook URL (向後相容性保留)')
   .option('-n, --notify-config <file>', '通知器配置檔案路徑 (可選，支援 .yml/.yaml), 預設')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx)')
   .action(async (options: CliOptions) => {
@@ -104,14 +103,11 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   const notifyConfigLoader = new NotifyConfigLoader();
   let notifierConfigs: NotifierConfig[] = [];
 
-  // 優先級：命令列指定配置檔案 > CLI 參數 (向後相容) > 預設配置檔案
+  // 優先級：命令列指定配置檔案 > 預設配置檔案
   if (options.notifyConfig) {
     console.log(`📋 載入指定的通知器配置: ${options.notifyConfig}`);
     const config = await notifyConfigLoader.loadNotifyConfig(options.notifyConfig);
     notifierConfigs = config.notifiers;
-  } else if (options.teamsWebhookUrl) {
-    console.log('📋 使用 CLI 參數建立 Teams 通知配置 (向後相容模式)');
-    notifierConfigs = notifyConfigLoader.createNotifyConfigFromCli(options.teamsWebhookUrl);
   } else {
     // 嘗試載入預設配置檔案
     const defaultConfig = await notifyConfigLoader.loadDefaultNotifyConfig();

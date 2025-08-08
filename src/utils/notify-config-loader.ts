@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import * as yaml from 'js-yaml';
-import type { NotifyConfig, NotifierConfig } from '../types.js';
+import type { NotifyConfig } from '../types.js';
 
 export class NotifyConfigLoader {
   /**
@@ -34,26 +34,6 @@ export class NotifyConfigLoader {
       }
       throw new Error(`載入通知器配置失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
     }
-  }
-
-  /**
-   * 從 CLI 參數建立通知器配置 (向後相容性)
-   * @param teamsWebhookUrl Teams Webhook URL
-   */
-  createNotifyConfigFromCli(teamsWebhookUrl?: string): NotifierConfig[] {
-    if (!teamsWebhookUrl) {
-      return [];
-    }
-
-    return [
-      {
-        type: 'teams',
-        config: {
-          webhookUrl: teamsWebhookUrl,
-        },
-        enabled: true,
-      },
-    ];
   }
 
   /**
