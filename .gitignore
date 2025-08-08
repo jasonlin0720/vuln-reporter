@@ -16,5 +16,9 @@ trivy-report.json
 .vuln-ignore.yml
 .vuln-notify.yml
 
+# 但保留 examples 目錄中的範例配置檔案
+!examples/**/.vuln-ignore.yml
+!examples/**/.vuln-notify.yml
+
 # 設計文件 (內部開發使用)
 *設計方案.md
