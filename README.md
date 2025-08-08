@@ -1,7 +1,7 @@
 # vuln-reporter
 
 ![NPM Version](https://img.shields.io/npm/v/vuln-reporter.svg)](https://www.npmjs.com/package/vuln-reporter)
-[![License](https://img.shields.io/npm/l/vuln-reporter.svg)](https://github.com/jasonlin0720/vuln-reporter/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/vuln-reporter.svg)](https://github.com/jasonlin0720/vuln-reporter/blob/master/LICENSE)
 [![Node.js CI](https://github.com/jasonlin0720/vuln-reporter/actions/workflows/node.js.yml/badge.svg)](https://github.com/jasonlin0720/vuln-reporter/actions/workflows/node.js.yml)
 
 通用型漏洞掃描與報告工具 - 支援多種掃描工具（Trivy 等），生成 Excel 報告並發送 Teams 通知的 CLI 工具
