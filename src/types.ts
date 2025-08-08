@@ -1,25 +1,13 @@
-export interface VulnerabilityResult {
-  VulnerabilityID: string;
-  PkgName: string;
-  InstalledVersion: string;
-  FixedVersion?: string;
-  Severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  Title: string;
-  Description: string;
-  PrimaryURL?: string;
-}
-
-export interface TrivyTarget {
-  Target: string;
-  Class: string;
-  Type: string;
-  Vulnerabilities?: VulnerabilityResult[];
-}
-
-export interface TrivyReport {
-  SchemaVersion: number;
-  Results: TrivyTarget[];
-  CreatedAt: string;
+// 標準化漏洞格式 - 所有掃描工具的適配器都要轉換成此格式
+export interface StandardVulnerability {
+  id: string; // CVE ID 或其他漏洞標識符
+  packageName: string; // 套件名稱
+  installedVersion: string; // 目前安裝版本
+  fixedVersion?: string; // 修復版本
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  title: string; // 漏洞標題
+  description: string; // 漏洞描述
+  references?: string[]; // 參考連結
 }
 
 export interface VulnIgnoreRule {
@@ -33,7 +21,12 @@ export interface VulnIgnoreConfig {
   rules: VulnIgnoreRule[];
 }
 
-export interface ProcessedVulnerability extends VulnerabilityResult {
+// 漏洞掃描器適配器介面
+export interface VulnerabilityScanner {
+  parseReport(reportData: any): StandardVulnerability[];
+}
+
+export interface ProcessedVulnerability extends StandardVulnerability {
   isIgnored: boolean;
   ignoreReason?: string;
 }

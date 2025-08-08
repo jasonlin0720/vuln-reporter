@@ -7,7 +7,8 @@ import { IgnoreFilter } from './utils/ignore-filter.js';
 import { ConfigLoader } from './utils/config-loader.js';
 import { ExcelReporter } from './reporters/excel-reporter.js';
 import { TeamsNotifier } from './notifiers/teams-notifier.js';
-import type { TrivyReport, CliOptions } from './types.js';
+import type { CliOptions } from './types.js';
+import type { TrivyReport } from './types/trivy-types.js';
 
 const program = new Command();
 

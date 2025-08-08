@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TrivyParser } from '../../src/parsers/trivy-parser.js';
-import type { TrivyReport } from '../../src/types.js';
+import type { TrivyReport } from '../../src/types/trivy-types.js';
 
 describe('TrivyParser', () => {
   const mockTrivyReport: TrivyReport = {
@@ -40,8 +40,24 @@ describe('TrivyParser', () => {
     const vulnerabilities = parser.parseReport(mockTrivyReport);
 
     expect(vulnerabilities).toHaveLength(2);
-    expect(vulnerabilities[0].VulnerabilityID).toBe('CVE-2023-12345');
-    expect(vulnerabilities[1].VulnerabilityID).toBe('CVE-2023-67890');
+    expect(vulnerabilities[0].id).toBe('CVE-2023-12345');
+    expect(vulnerabilities[0].packageName).toBe('lodash');
+    expect(vulnerabilities[0].installedVersion).toBe('4.17.20');
+    expect(vulnerabilities[0].fixedVersion).toBe('4.17.21');
+    expect(vulnerabilities[0].severity).toBe('CRITICAL');
+    expect(vulnerabilities[0].title).toBe('Test vulnerability');
+    expect(vulnerabilities[0].description).toBe('Test description');
+    expect(vulnerabilities[0].references).toEqual([
+      'https://nvd.nist.gov/vuln/detail/CVE-2023-12345',
+    ]);
+
+    expect(vulnerabilities[1].id).toBe('CVE-2023-67890');
+    expect(vulnerabilities[1].packageName).toBe('axios');
+    expect(vulnerabilities[1].installedVersion).toBe('0.21.0');
+    expect(vulnerabilities[1].severity).toBe('HIGH');
+    expect(vulnerabilities[1].title).toBe('Another test vulnerability');
+    expect(vulnerabilities[1].description).toBe('Another test description');
+    expect(vulnerabilities[1].references).toBeUndefined();
   });
 
   it('should handle empty results', () => {

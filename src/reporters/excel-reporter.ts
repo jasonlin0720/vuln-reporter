@@ -81,14 +81,14 @@ export class ExcelReporter {
     ];
 
     const rows = vulnerabilities.map((vuln) => [
-      vuln.VulnerabilityID,
-      vuln.PkgName,
-      vuln.InstalledVersion,
-      vuln.FixedVersion || 'N/A',
-      vuln.Severity,
-      vuln.Title,
-      vuln.Description,
-      vuln.PrimaryURL || 'N/A',
+      vuln.id,
+      vuln.packageName,
+      vuln.installedVersion,
+      vuln.fixedVersion || 'N/A',
+      vuln.severity,
+      vuln.title,
+      vuln.description,
+      vuln.references?.join(', ') || 'N/A',
       vuln.isIgnored ? '已忽略' : '新發現',
       vuln.ignoreReason || 'N/A',
     ]);

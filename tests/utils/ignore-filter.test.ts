@@ -1,32 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { IgnoreFilter } from '../../src/utils/ignore-filter.js';
-import type { VulnerabilityResult, VulnIgnoreRule } from '../../src/types.js';
+import type { StandardVulnerability, VulnIgnoreRule } from '../../src/types.js';
 
 describe('IgnoreFilter', () => {
-  const mockVulnerabilities: VulnerabilityResult[] = [
+  const mockVulnerabilities: StandardVulnerability[] = [
     {
-      VulnerabilityID: 'CVE-2023-12345',
-      PkgName: 'lodash',
-      InstalledVersion: '4.17.20',
-      Severity: 'CRITICAL',
-      Title: 'Test vulnerability 1',
-      Description: 'Test description 1',
+      id: 'CVE-2023-12345',
+      packageName: 'lodash',
+      installedVersion: '4.17.20',
+      severity: 'CRITICAL',
+      title: 'Test vulnerability 1',
+      description: 'Test description 1',
     },
     {
-      VulnerabilityID: 'CVE-2023-67890',
-      PkgName: 'axios',
-      InstalledVersion: '0.21.0',
-      Severity: 'HIGH',
-      Title: 'Test vulnerability 2',
-      Description: 'Test description 2',
+      id: 'CVE-2023-67890',
+      packageName: 'axios',
+      installedVersion: '0.21.0',
+      severity: 'HIGH',
+      title: 'Test vulnerability 2',
+      description: 'Test description 2',
     },
     {
-      VulnerabilityID: 'CVE-2023-11111',
-      PkgName: 'lodash',
-      InstalledVersion: '4.17.20',
-      Severity: 'MEDIUM',
-      Title: 'Test vulnerability 3',
-      Description: 'Test description 3',
+      id: 'CVE-2023-11111',
+      packageName: 'lodash',
+      installedVersion: '4.17.20',
+      severity: 'MEDIUM',
+      title: 'Test vulnerability 3',
+      description: 'Test description 3',
     },
   ];
 
