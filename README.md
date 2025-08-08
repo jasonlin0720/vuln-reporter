@@ -4,14 +4,16 @@
 [![License](https://img.shields.io/npm/l/vuln-reporter.svg)](https://github.com/zhengdelin/vuln-reporter/blob/main/LICENSE)
 [![Node.js CI](https://github.com/zhengdelin/vuln-reporter/actions/workflows/node.js.yml/badge.svg)](https://github.com/zhengdelin/vuln-reporter/actions/workflows/node.js.yml)
 
-通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知的 CLI 工具
+通用型漏洞掃描與報告工具 - 支援多種掃描工具（Trivy 等），生成 Excel 報告並發送 Teams 通知的 CLI 工具
 
 ## 功能特點
 
-- 🔍 **Trivy 報告解析**: 解析 Trivy JSON 格式的掃描報告
+- 🔧 **多掃描工具支援**: 透過 Adapter 架構支援多種掃描工具（目前支援 Trivy，可擴展）
+- 🤖 **智能格式檢測**: 自動檢測掃描報告格式，無需手動指定
 - 🚫 **智能忽略機制**: 透過 YAML 配置檔案管理漏洞忽略規則
 - 📊 **Excel 報告生成**: 生成包含摘要和詳情的 Excel 報告
 - 📢 **Teams 通知整合**: 發送 Adaptive Cards 格式的 Teams 通知
+- 🔍 **詳細輸出模式**: 支援 verbose 模式顯示完整漏洞資訊
 - 🎯 **CI/CD 友善**: 根據漏洞嚴重性設定適當的退出碼
 - ⚡ **零配置啟動**: 開箱即用，無需複雜配置
 
@@ -30,22 +32,27 @@ npm install
 ### 基本使用
 
 ```bash
-# 基本用法 - 生成 Excel 報告
-pnpm dev --input trivy-report.json --reporter-title "我的專案安全掃描"
+# 基本用法 - 自動檢測掃描工具格式
+pnpm dev --input scan-report.json --reporter-title "我的專案安全掃描"
 
-# 包含詳情連結
-pnpm dev --input trivy-report.json --reporter-title "CI/CD 掃描結果" --details-url "https://github.com/your-repo/actions/runs/123"
+# 詳細輸出模式 - 顯示完整漏洞資訊
+pnpm dev --input scan-report.json --reporter-title "詳細掃描結果" --verbose
+
+# 手動指定掃描工具類型
+pnpm dev --input trivy-report.json --reporter-title "Trivy 掃描" --scanner trivy
 
 # 完整功能 - 包含 Teams 通知
-pnpm dev --input trivy-report.json --reporter-title "生產環境掃描" --teams-webhook-url "YOUR_TEAMS_WEBHOOK_URL" --output-file "security-report.xlsx"
+pnpm dev --input scan-report.json --reporter-title "生產環境掃描" --teams-webhook-url "YOUR_TEAMS_WEBHOOK_URL" --output-file "security-report.xlsx"
 ```
 
 ### 命令列參數
 
 | 參數                  | 短參數 | 必須 | 說明                                                     |
 | --------------------- | ------ | ---- | -------------------------------------------------------- |
-| `--input`             | `-i`   | ✅   | Trivy JSON 報告檔案路徑                                  |
+| `--input`             | `-i`   | ✅   | 掃描報告 JSON 檔案路徑（支援 Trivy 等格式）              |
 | `--reporter-title`    | `-t`   | ✅   | 報告標題                                                 |
+| `--scanner`           | `-s`   | ❌   | 指定掃描工具類型 (auto, trivy)，預設: auto               |
+| `--verbose`           | `-v`   | ❌   | 顯示詳細的漏洞資訊                                       |
 | `--details-url`       | `-d`   | ❌   | 詳細報告連結 (可選)                                      |
 | `--teams-webhook-url` | `-w`   | ❌   | Microsoft Teams Webhook URL (可選)                       |
 | `--output-file`       | `-o`   | ❌   | Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx) |
@@ -119,6 +126,61 @@ examples\run-example.bat
 ./examples/run-example.sh
 ```
 
+## Trivy 本地測試
+
+### 使用 Docker 執行 Trivy 掃描
+
+```bash
+# 掃描當前目錄並生成 JSON 報告
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --format json --output /app/trivy-report.json
+
+# Windows PowerShell
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --format json --output /app/trivy-report.json
+
+# Windows CMD
+docker run --rm -v %CD%:/app aquasec/trivy:latest fs /app --format json --output /app/trivy-report.json
+```
+
+### 使用本工具分析掃描結果
+
+```bash
+# 基本分析
+pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx"
+
+# 詳細輸出模式
+pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx" --verbose
+```
+
+### 完整測試流程
+
+```bash
+# 1. 執行 Trivy 掃描
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --format json --output /app/trivy-report.json
+
+# 2. 複製忽略規則範例（可選）
+cp examples/.vuln-ignore.yml .
+
+# 3. 分析掃描結果
+pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描" --output-file "local-scan-report.xlsx" --verbose
+
+# 4. 檢查生成的報告
+# - Excel 報告: local-scan-report.xlsx
+# - 終端輸出: 詳細的漏洞資訊列表
+```
+
+### 其他 Trivy 掃描選項
+
+```bash
+# 僅掃描高嚴重性漏洞
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --severity HIGH,CRITICAL --format json --output /app/trivy-high-only.json
+
+# 掃描特定目錄
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app/src --format json --output /app/trivy-src-only.json
+
+# 包含忽略未修復的漏洞
+docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --ignore-unfixed --format json --output /app/trivy-fixable.json
+```
+
 ## CI/CD 整合
 
 ### GitHub Actions
@@ -156,6 +218,38 @@ security_report:
 - `1`: 發現 Critical 或 High 嚴重性漏洞
 
 這讓 CI/CD 系統能夠根據掃描結果決定是否讓建置失敗。
+
+## 架構擴展性
+
+### 支援新掃描工具
+
+本工具採用 Adapter 架構設計，可輕易擴展支援新的漏洞掃描工具：
+
+```typescript
+// 1. 建立新的掃描工具解析器
+export class NewScannerParser implements VulnerabilityScanner {
+  parseReport(report: NewScannerReport): StandardVulnerability[] {
+    // 將新掃描工具的格式轉換為標準格式
+    return convertedVulnerabilities;
+  }
+}
+
+// 2. 在 ParserRegistry 中註冊
+registry.registerParser('new-scanner', new NewScannerParser());
+```
+
+### 當前支援
+
+- ✅ **Trivy**: 完整支援，包含自動格式檢測
+- 🔧 **其他工具**: 可透過實作 `VulnerabilityScanner` 介面輕鬆新增
+
+### 標準化格式
+
+所有掃描工具的報告都會轉換為統一的 `StandardVulnerability` 格式，確保：
+
+- 🔄 **格式一致**: 所有後續處理都基於統一格式
+- 🧪 **易於測試**: 標準化格式便於編寫測試
+- 🔧 **易於維護**: 新增工具不影響現有功能
 
 ## 開發
 
