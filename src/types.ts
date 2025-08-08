@@ -71,6 +71,7 @@ export interface CliOptions {
   ignoreConfig?: string; // 忽略規則配置檔案路徑
   notifyConfig?: string; // 通知器配置檔案路徑
   outputFile?: string;
+  exitOnHighSeverity?: boolean; // 是否在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出
 }
 
 // 標準化後的 CLI 選項（包含所有預設值）
@@ -83,4 +84,5 @@ export interface NormalizedCliOptions {
   ignoreConfig: string;
   notifyConfig: string;
   outputFile: string;
+  exitOnHighSeverity: boolean; // 是否在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出
 }
