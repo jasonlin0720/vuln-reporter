@@ -2,26 +2,24 @@
 import { Command } from 'commander';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { TrivyParser } from './parsers/trivy-parser.js';
+import { ParserRegistry } from './parsers/parser-registry.js';
 import { IgnoreFilter } from './utils/ignore-filter.js';
 import { ConfigLoader } from './utils/config-loader.js';
 import { ExcelReporter } from './reporters/excel-reporter.js';
 import { TeamsNotifier } from './notifiers/teams-notifier.js';
 import type { CliOptions } from './types.js';
-import type { TrivyReport } from './types/trivy-types.js';
 
 const program = new Command();
 
 program
   .name('vuln-reporter')
-  .description(
-    '通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知',
-  )
+  .description('通用型漏洞掃描與報告工具 - 支援多種掃描工具，生成 Excel 報告並發送 Teams 通知')
   .version('1.0.0');
 
 program
-  .requiredOption('-i, --input <file>', 'Trivy JSON 報告檔案路徑')
+  .requiredOption('-i, --input <file>', '掃描報告 JSON 檔案路徑 (支援 Trivy 等格式)')
   .requiredOption('-t, --reporter-title <title>', '報告標題')
+  .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy), 預設: auto')
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
   .option('-w, --teams-webhook-url <url>', 'Microsoft Teams Webhook URL (可選)')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx)')
@@ -37,22 +35,41 @@ program
 async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   console.log('🔍 開始處理漏洞掃描報告...');
 
-  // 1. 讀取並解析 Trivy 報告
-  console.log('📖 讀取 Trivy 報告檔案...');
-  const trivyReportContent = await fs.readFile(options.input, 'utf-8');
-  const trivyReport: TrivyReport = JSON.parse(trivyReportContent);
+  // 1. 讀取並解析掃描報告
+  console.log('📖 讀取掃描報告檔案...');
+  const reportContent = await fs.readFile(options.input, 'utf-8');
+  const reportData = JSON.parse(reportContent);
 
-  const parser = new TrivyParser();
-  const vulnerabilities = parser.parseReport(trivyReport);
+  // 2. 初始化解析器註冊表
+  const parserRegistry = new ParserRegistry();
+
+  // 3. 自動檢測或手動指定解析器
+  let parserResult;
+  if (options.scanner && options.scanner !== 'auto') {
+    const parser = parserRegistry.getParser(options.scanner);
+    if (!parser) {
+      throw new Error(
+        `不支援的掃描工具類型: ${options.scanner}。支援的類型: ${parserRegistry.listAvailableParsers().join(', ')}`,
+      );
+    }
+    parserResult = { parser, scannerType: options.scanner };
+    console.log(`📋 使用指定的解析器: ${options.scanner}`);
+  } else {
+    parserResult = parserRegistry.detectParser(reportData);
+    console.log(`🔍 自動檢測到掃描工具: ${parserResult.scannerType}`);
+  }
+
+  // 4. 解析漏洞報告
+  const vulnerabilities = parserResult.parser.parseReport(reportData);
   console.log(`✅ 解析完成，發現 ${vulnerabilities.length} 個漏洞`);
 
-  // 2. 載入忽略規則
+  // 5. 載入忽略規則
   console.log('📋 載入漏洞忽略規則...');
   const configLoader = new ConfigLoader();
   const ignoreConfig = await configLoader.loadConfig('.vuln-ignore.yml');
   console.log(`✅ 載入 ${ignoreConfig.rules.length} 條忽略規則`);
 
-  // 3. 套用忽略規則並生成摘要
+  // 6. 套用忽略規則並生成摘要
   const ignoreFilter = new IgnoreFilter(ignoreConfig.rules);
   const processedVulnerabilities = ignoreFilter.processVulnerabilities(vulnerabilities);
   const summary = ignoreFilter.generateSummary(processedVulnerabilities);
@@ -67,7 +84,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   console.log(`   - Medium: ${summary.medium.new} 新發現, ${summary.medium.ignored} 已忽略`);
   console.log(`   - Low: ${summary.low.new} 新發現, ${summary.low.ignored} 已忽略`);
 
-  // 4. 生成 Excel 報告
+  // 7. 生成 Excel 報告
   const outputFile = options.outputFile || 'vulnerability-report.xlsx';
   const outputPath = path.resolve(outputFile);
 
@@ -84,7 +101,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   );
   console.log('✅ Excel 報告生成完成');
 
-  // 5. 發送 Teams 通知 (如果提供 webhook URL)
+  // 8. 發送 Teams 通知 (如果提供 webhook URL)
   if (options.teamsWebhookUrl) {
     console.log('📢 發送 Microsoft Teams 通知...');
     const teamsNotifier = new TeamsNotifier();

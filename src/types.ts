@@ -41,6 +41,7 @@ export interface VulnerabilitySummary {
 export interface CliOptions {
   input: string;
   reporterTitle: string;
+  scanner?: string;
   detailsUrl?: string;
   teamsWebhookUrl?: string;
   outputFile?: string;
