@@ -42,6 +42,7 @@ export interface CliOptions {
   input: string;
   reporterTitle: string;
   scanner?: string;
+  verbose?: boolean;
   detailsUrl?: string;
   teamsWebhookUrl?: string;
   outputFile?: string;

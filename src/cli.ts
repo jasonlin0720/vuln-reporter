@@ -7,6 +7,7 @@ import { IgnoreFilter } from './utils/ignore-filter.js';
 import { ConfigLoader } from './utils/config-loader.js';
 import { ExcelReporter } from './reporters/excel-reporter.js';
 import { TeamsNotifier } from './notifiers/teams-notifier.js';
+import { ResultLogger } from './utils/result-logger.js';
 import type { CliOptions } from './types.js';
 
 const program = new Command();
@@ -20,6 +21,7 @@ program
   .requiredOption('-i, --input <file>', '掃描報告 JSON 檔案路徑 (支援 Trivy 等格式)')
   .requiredOption('-t, --reporter-title <title>', '報告標題')
   .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy), 預設: auto')
+  .option('-v, --verbose', '顯示詳細的漏洞資訊')
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
   .option('-w, --teams-webhook-url <url>', 'Microsoft Teams Webhook URL (可選)')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx)')
@@ -74,15 +76,10 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   const processedVulnerabilities = ignoreFilter.processVulnerabilities(vulnerabilities);
   const summary = ignoreFilter.generateSummary(processedVulnerabilities);
 
-  const totalNew = summary.critical.new + summary.high.new + summary.medium.new + summary.low.new;
-  const totalIgnored =
-    summary.critical.ignored + summary.high.ignored + summary.medium.ignored + summary.low.ignored;
-
-  console.log(`📊 處理結果: ${totalNew} 個新漏洞, ${totalIgnored} 個已忽略漏洞`);
-  console.log(`   - Critical: ${summary.critical.new} 新發現, ${summary.critical.ignored} 已忽略`);
-  console.log(`   - High: ${summary.high.new} 新發現, ${summary.high.ignored} 已忽略`);
-  console.log(`   - Medium: ${summary.medium.new} 新發現, ${summary.medium.ignored} 已忽略`);
-  console.log(`   - Low: ${summary.low.new} 新發現, ${summary.low.ignored} 已忽略`);
+  // 6.1. 初始化結果記錄器並輸出處理結果
+  const resultLogger = new ResultLogger({ verbose: options.verbose });
+  resultLogger.logResults(summary, processedVulnerabilities);
+  const { totalNew, totalIgnored } = resultLogger.calculateTotals(summary);
 
   // 7. 生成 Excel 報告
   const outputFile = options.outputFile || 'vulnerability-report.xlsx';
