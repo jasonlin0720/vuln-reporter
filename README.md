@@ -19,30 +19,35 @@
 
 ## 快速開始
 
-### 安裝
+### 使用 npx (推薦)
 
-```bash
-# 使用 pnpm (推薦)
-pnpm install
-
-# 或使用 npm
-npm install
-```
-
-### 基本使用
+無需安裝，直接使用最新版本：
 
 ```bash
 # 基本用法 - 自動檢測掃描工具格式
-pnpm dev --input scan-report.json --reporter-title "我的專案安全掃描"
+npx vuln-reporter --input scan-report.json --reporter-title "我的專案安全掃描"
 
 # 詳細輸出模式 - 顯示完整漏洞資訊
-pnpm dev --input scan-report.json --reporter-title "詳細掃描結果" --verbose
+npx vuln-reporter --input scan-report.json --reporter-title "詳細掃描結果" --verbose
 
 # 手動指定掃描工具類型
-pnpm dev --input trivy-report.json --reporter-title "Trivy 掃描" --scanner trivy
+npx vuln-reporter --input trivy-report.json --reporter-title "Trivy 掃描" --scanner trivy
 
 # 完整功能 - 包含自定義配置
-pnpm dev --input scan-report.json --reporter-title "生產環境掃描" --notify-config custom-notify.yml --output-file "security-report.xlsx"
+npx vuln-reporter --input scan-report.json --reporter-title "生產環境掃描" --notify-config custom-notify.yml --output-file "security-report.xlsx"
+```
+
+### 安裝使用
+
+```bash
+# 全域安裝
+npm install -g vuln-reporter
+
+# 專案內安裝 (開發依賴)
+npm install --save-dev vuln-reporter
+
+# 使用已安裝的版本
+vuln-reporter --input scan-report.json --reporter-title "我的專案安全掃描"
 ```
 
 ### 命令列參數
@@ -151,6 +156,10 @@ Teams 通知會包含：
 ### 執行範例
 
 ```bash
+# 直接使用 npx (推薦)
+npx vuln-reporter --input examples/trivy-report-sample.json --reporter-title "範例掃描報告"
+
+# 或執行範例腳本
 # Windows
 examples\run-example.bat
 
@@ -177,10 +186,10 @@ docker run --rm -v %CD%:/app aquasec/trivy:latest fs /app --format json --output
 
 ```bash
 # 基本分析
-pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx"
+npx vuln-reporter --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx"
 
 # 詳細輸出模式
-pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx" --verbose
+npx vuln-reporter --input .\trivy-report.json --reporter-title "Trivy 本地掃描測試" --output-file "trivy-report.xlsx" --verbose
 ```
 
 ### 完整測試流程
@@ -193,7 +202,7 @@ docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --format json --outp
 cp examples/.vuln-ignore.yml .
 
 # 3. 分析掃描結果
-pnpm dev --input .\trivy-report.json --reporter-title "Trivy 本地掃描" --output-file "local-scan-report.xlsx" --verbose
+npx vuln-reporter --input .\trivy-report.json --reporter-title "Trivy 本地掃描" --output-file "local-scan-report.xlsx" --verbose
 
 # 4. 檢查生成的報告
 # - Excel 報告: local-scan-report.xlsx
@@ -318,26 +327,67 @@ registry.registerNotifier('slack', new SlackNotifier());
 
 ## 開發
 
-### 建置
+### 本地開發環境設置
 
 ```bash
+# 1. 克隆專案
+git clone https://github.com/jasonlin0720/vuln-reporter.git
+cd vuln-reporter
+
+# 2. 安裝依賴
+pnpm install
+
+# 3. 建置專案
 pnpm build
 ```
 
-### 測試
+### 開發指令
 
 ```bash
+# 建置 TypeScript
+pnpm build
+
+# 開發模式執行 (使用本地源碼)
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "本地開發測試"
+
 # 執行所有測試
 pnpm test
 
 # 執行特定測試檔案
 pnpm test tests/parsers/trivy-parser.test.ts
+
+# 程式碼檢查
+pnpm lint
+
+# 程式碼格式化
+pnpm format
+
+# TypeScript 類型檢查
+pnpm typecheck
 ```
 
-### 開發模式
+### 本地測試
 
 ```bash
-pnpm dev --input examples/trivy-report-sample.json --reporter-title "開發測試"
+# 使用本地開發版本測試
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "本地測試" --verbose
+
+# 測試 Excel 報告生成
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "Excel 測試" --output-file "local-test.xlsx"
+
+# 測試忽略規則 (需要先複製範例配置)
+cp examples/.vuln-ignore.yml .
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "忽略規則測試" --verbose
+```
+
+### 與發布版本比較
+
+```bash
+# 使用 npx 測試最新發布版本
+npx vuln-reporter --input examples/trivy-report-sample.json --reporter-title "發布版本測試"
+
+# 使用本地開發版本
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "開發版本測試"
 ```
 
 ## 技術規格
