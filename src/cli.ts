@@ -19,10 +19,11 @@ program
   .option('--ignore-config <file>', '忽略規則配置檔案路徑', '.vuln-ignore.yml')
   .option('-n, --notify-config <file>', '通知器配置檔案路徑', '.vuln-notify.yml')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑', 'vulnerability-report.xlsx')
+  .option('--exit-on-high-severity', '在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出', true)
   .option(
-    '--exit-on-high-severity',
-    '在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出 (預設: true)',
-    true,
+    '--no-exit-on-high-severity',
+    '在發現 Critical 或 High 嚴重性漏洞時不以非零退出碼退出',
+    false,
   )
   .action(async (options: CliOptions) => {
     try {
