@@ -20,7 +20,7 @@ describe('TrivyParser', () => {
             Severity: 'CRITICAL',
             Title: 'Test vulnerability',
             Description: 'Test description',
-            PrimaryURL: 'https://nvd.nist.gov/vuln/detail/CVE-2023-12345'
+            PrimaryURL: 'https://nvd.nist.gov/vuln/detail/CVE-2023-12345',
           },
           {
             VulnerabilityID: 'CVE-2023-67890',
@@ -28,11 +28,11 @@ describe('TrivyParser', () => {
             InstalledVersion: '0.21.0',
             Severity: 'HIGH',
             Title: 'Another test vulnerability',
-            Description: 'Another test description'
-          }
-        ]
-      }
-    ]
+            Description: 'Another test description',
+          },
+        ],
+      },
+    ],
   };
 
   it('should parse trivy report and extract vulnerabilities', () => {
@@ -49,7 +49,7 @@ describe('TrivyParser', () => {
     const emptyReport: TrivyReport = {
       SchemaVersion: 2,
       CreatedAt: '2024-01-01T00:00:00Z',
-      Results: []
+      Results: [],
     };
 
     const vulnerabilities = parser.parseReport(emptyReport);
@@ -65,9 +65,9 @@ describe('TrivyParser', () => {
         {
           Target: 'clean-package.json',
           Class: 'lang-pkgs',
-          Type: 'npm'
-        }
-      ]
+          Type: 'npm',
+        },
+      ],
     };
 
     const vulnerabilities = parser.parseReport(reportWithoutVulns);
