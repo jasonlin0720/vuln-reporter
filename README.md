@@ -1,5 +1,9 @@
 # vuln-reporter
 
+![NPM Version](https://img.shields.io/npm/v/vuln-reporter.svg)](https://www.npmjs.com/package/vuln-reporter)
+[![License](https://img.shields.io/npm/l/vuln-reporter.svg)](https://github.com/zhengdelin/vuln-reporter/blob/main/LICENSE)
+[![Node.js CI](https://github.com/zhengdelin/vuln-reporter/actions/workflows/node.js.yml/badge.svg)](https://github.com/zhengdelin/vuln-reporter/actions/workflows/node.js.yml)
+
 通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知的 CLI 工具
 
 ## 功能特點
@@ -38,13 +42,13 @@ pnpm dev --input trivy-report.json --reporter-title "生產環境掃描" --teams
 
 ### 命令列參數
 
-| 參數 | 短參數 | 必須 | 說明 |
-|------|--------|------|------|
-| `--input` | `-i` | ✅ | Trivy JSON 報告檔案路徑 |
-| `--reporter-title` | `-t` | ✅ | 報告標題 |
-| `--details-url` | `-d` | ❌ | 詳細報告連結 (可選) |
-| `--teams-webhook-url` | `-w` | ❌ | Microsoft Teams Webhook URL (可選) |
-| `--output-file` | `-o` | ❌ | Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx) |
+| 參數                  | 短參數 | 必須 | 說明                                                     |
+| --------------------- | ------ | ---- | -------------------------------------------------------- |
+| `--input`             | `-i`   | ✅   | Trivy JSON 報告檔案路徑                                  |
+| `--reporter-title`    | `-t`   | ✅   | 報告標題                                                 |
+| `--details-url`       | `-d`   | ❌   | 詳細報告連結 (可選)                                      |
+| `--teams-webhook-url` | `-w`   | ❌   | Microsoft Teams Webhook URL (可選)                       |
+| `--output-file`       | `-o`   | ❌   | Excel 報告輸出檔案路徑 (預設: vulnerability-report.xlsx) |
 
 ## 漏洞忽略機制
 
@@ -55,18 +59,18 @@ pnpm dev --input trivy-report.json --reporter-title "生產環境掃描" --teams
 rules:
   # 依 CVE ID 忽略
   - cve: CVE-2023-26136
-    reason: "已確認為誤報"
-    expires: "2024-06-30"  # 可選：設定到期日期
+    reason: '已確認為誤報'
+    expires: '2024-06-30' # 可選：設定到期日期
 
   # 依 CVE ID 和套件名稱忽略 (更精確)
   - cve: CVE-2022-25883
     package: semver
-    reason: "等待下個維護窗口更新"
-    expires: "2024-03-31"
+    reason: '等待下個維護窗口更新'
+    expires: '2024-03-31'
 
   # 永久忽略 (不設定 expires)
   - cve: CVE-2023-26115
-    reason: "開發依賴套件，不影響生產環境"
+    reason: '開發依賴套件，不影響生產環境'
 ```
 
 ### 忽略規則欄位說明
@@ -88,6 +92,7 @@ rules:
 ### 通知內容
 
 Teams 通知會包含：
+
 - 📊 漏洞數量摘要 (依嚴重程度分類)
 - 🎨 根據嚴重程度的顏色主題
 - 🔗 詳細報告連結 (如果提供)
@@ -123,7 +128,7 @@ examples\run-example.bat
   run: |
     # 執行 Trivy 掃描
     trivy fs --format json --output trivy-report.json .
-    
+
     # 生成報告並發送通知
     npx vuln-reporter \
       --input trivy-report.json \
@@ -138,11 +143,11 @@ examples\run-example.bat
 security_report:
   script:
     - trivy fs --format json --output trivy-report.json .
-    - npx vuln-reporter 
-        --input trivy-report.json 
-        --reporter-title "${CI_PROJECT_NAME} Security Scan" 
-        --details-url "${CI_PIPELINE_URL}" 
-        --teams-webhook-url "${TEAMS_WEBHOOK_URL}"
+    - npx vuln-reporter
+      --input trivy-report.json
+      --reporter-title "${CI_PROJECT_NAME} Security Scan"
+      --details-url "${CI_PIPELINE_URL}"
+      --teams-webhook-url "${TEAMS_WEBHOOK_URL}"
 ```
 
 ## 退出碼
