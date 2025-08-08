@@ -5,6 +5,37 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本號遵循 [語義化版本](https://semver.org/spec/v2.0.0.html) 規範。
 
+## [0.1.1] - 2025-08-08
+
+### 新增功能
+
+- 🏗️ **核心架構重構** - 新增 `VulnerabilityProcessor` 核心處理器，統一管理漏洞處理流程
+- 🎯 **退出碼控制** - 新增 `--exit-on-high-severity` 和 `--no-exit-on-high-severity` 選項，可自定義 CI/CD 退出行為
+- ⚙️ **選項標準化** - 新增 `normalizeOptions` 函數，提供一致的預設值和選項處理
+- 🧪 **完整測試覆蓋** - 新增核心處理器測試，測試案例從 64 個增加到 80 個，確保所有功能模組的整合測試
+
+### 改進
+
+- 📦 **模組化設計** - 將 CLI 邏輯抽離到 `VulnerabilityProcessor`，提升程式碼可維護性
+- 🔧 **配置管理** - 改善選項處理和預設值管理，提升使用者體驗
+- 📝 **程式碼品質** - 使用 Prettier 統一程式碼格式，提升程式碼一致性
+
+### 技術變更
+
+- **新增檔案**:
+  - `src/core/vulnerability-processor.ts` - 核心漏洞處理器
+  - `src/utils/normalizeOptions.ts` - CLI 選項標準化工具
+  - `tests/core/vulnerability-processor.test.ts` - 核心處理器測試
+
+- **更新檔案**:
+  - `src/cli.ts` - 重構為使用 `VulnerabilityProcessor`
+  - `src/types.ts` - 新增 `exitOnHighSeverity` 選項支援
+
+### 向後相容性
+
+- ✅ **完全向後相容** - 所有現有 CLI 選項和行為保持不變
+- ✅ **預設行為** - `--exit-on-high-severity` 預設為 `true`，維持原有的 CI/CD 友善行為
+
 ## [0.1.0] - 2025-08-08
 
 ### 新增功能
@@ -30,7 +61,7 @@
 
 ### 測試與品質
 
-- **64 個測試案例** - 涵蓋所有模組的完整測試覆蓋率
+- **80 個測試案例** - 涵蓋所有模組的完整測試覆蓋率
 - **TDD 開發** - 測試驅動開發方法
 - **ESLint + Prettier** - 程式碼品質和格式化標準
 - **GitHub Actions CI** - 自動化測試和品質檢查
@@ -66,11 +97,13 @@
 - `--ignore-config` - 忽略規則配置檔案路徑
 - `--notify-config` / `-n` - 通知配置檔案路徑
 - `--output-file` / `-o` - Excel 報告輸出檔案路徑
+- `--exit-on-high-severity` - 發現 Critical/High 漏洞時以非零退出碼退出 (預設: true)
+- `--no-exit-on-high-severity` - 發現 Critical/High 漏洞時不以非零退出碼退出
 
 ### 退出碼
 
 - `0` - 未發現新漏洞或僅有低/中等嚴重性問題
-- `1` - 發現 Critical 或 High 嚴重性漏洞
+- `1` - 發現 Critical 或 High 嚴重性漏洞 (可透過 `--no-exit-on-high-severity` 停用)
 
 ---
 
