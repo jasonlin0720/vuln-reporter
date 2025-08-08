@@ -80,7 +80,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   // 6.1. 初始化結果記錄器並輸出處理結果
   const resultLogger = new ResultLogger({ verbose: options.verbose });
   resultLogger.logResults(summary, processedVulnerabilities);
-  const { totalNew, totalIgnored } = resultLogger.calculateTotals(summary);
+  const { totalNew } = resultLogger.calculateTotals(summary);
 
   // 7. 生成 Excel 報告
   const outputFile = options.outputFile || 'vulnerability-report.xlsx';
@@ -153,7 +153,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
 }
 
 // 錯誤處理
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   console.error('未處理的 Promise 拒絕:', reason);
   process.exit(1);
 });

@@ -50,7 +50,7 @@ export class NotifyConfigLoader {
           console.log(`📋 載入通知器配置: ${path}`);
           return config;
         }
-      } catch (error) {
+      } catch {
         // 繼續嘗試下一個檔案
         continue;
       }

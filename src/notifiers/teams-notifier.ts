@@ -44,7 +44,6 @@ export class TeamsNotifier implements Notifier {
   private createAdaptiveCard(data: TeamsNotificationData) {
     const { summary, reportTitle, detailsUrl } = data;
     const totalNew = summary.critical.new + summary.high.new + summary.medium.new + summary.low.new;
-    const hasCriticalOrHigh = summary.critical.new > 0 || summary.high.new > 0;
 
     // 決定主題顏色
     let themeColor = '28a745'; // 預設綠色 (良好)
@@ -70,6 +69,7 @@ export class TeamsNotifier implements Notifier {
 
     const card = {
       type: 'message',
+      themeColor: themeColor,
       attachments: [
         {
           contentType: 'application/vnd.microsoft.card.adaptive',
