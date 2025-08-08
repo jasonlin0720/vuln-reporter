@@ -13,7 +13,9 @@ const program = new Command();
 
 program
   .name('vuln-reporter')
-  .description('通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知')
+  .description(
+    '通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知',
+  )
   .version('1.0.0');
 
 program
@@ -38,7 +40,7 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   console.log('📖 讀取 Trivy 報告檔案...');
   const trivyReportContent = await fs.readFile(options.input, 'utf-8');
   const trivyReport: TrivyReport = JSON.parse(trivyReportContent);
-  
+
   const parser = new TrivyParser();
   const vulnerabilities = parser.parseReport(trivyReport);
   console.log(`✅ 解析完成，發現 ${vulnerabilities.length} 個漏洞`);
@@ -53,10 +55,11 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   const ignoreFilter = new IgnoreFilter(ignoreConfig.rules);
   const processedVulnerabilities = ignoreFilter.processVulnerabilities(vulnerabilities);
   const summary = ignoreFilter.generateSummary(processedVulnerabilities);
-  
+
   const totalNew = summary.critical.new + summary.high.new + summary.medium.new + summary.low.new;
-  const totalIgnored = summary.critical.ignored + summary.high.ignored + summary.medium.ignored + summary.low.ignored;
-  
+  const totalIgnored =
+    summary.critical.ignored + summary.high.ignored + summary.medium.ignored + summary.low.ignored;
+
   console.log(`📊 處理結果: ${totalNew} 個新漏洞, ${totalIgnored} 個已忽略漏洞`);
   console.log(`   - Critical: ${summary.critical.new} 新發現, ${summary.critical.ignored} 已忽略`);
   console.log(`   - High: ${summary.high.new} 新發現, ${summary.high.ignored} 已忽略`);
@@ -66,15 +69,18 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
   // 4. 生成 Excel 報告
   const outputFile = options.outputFile || 'vulnerability-report.xlsx';
   const outputPath = path.resolve(outputFile);
-  
+
   console.log(`📊 生成 Excel 報告: ${outputPath}`);
   const excelReporter = new ExcelReporter();
-  await excelReporter.generateReport({
-    vulnerabilities: processedVulnerabilities,
-    summary,
-    reportTitle: options.reporterTitle,
-    detailsUrl: options.detailsUrl
-  }, outputPath);
+  await excelReporter.generateReport(
+    {
+      vulnerabilities: processedVulnerabilities,
+      summary,
+      reportTitle: options.reporterTitle,
+      detailsUrl: options.detailsUrl,
+    },
+    outputPath,
+  );
   console.log('✅ Excel 報告生成完成');
 
   // 5. 發送 Teams 通知 (如果提供 webhook URL)
@@ -85,13 +91,13 @@ async function processVulnerabilityReport(options: CliOptions): Promise<void> {
       webhookUrl: options.teamsWebhookUrl,
       summary,
       reportTitle: options.reporterTitle,
-      detailsUrl: options.detailsUrl
+      detailsUrl: options.detailsUrl,
     });
     console.log('✅ Teams 通知發送完成');
   }
 
   console.log('🎉 所有任務完成!');
-  
+
   // 提供使用統計
   if (totalNew > 0) {
     if (summary.critical.new > 0 || summary.high.new > 0) {
