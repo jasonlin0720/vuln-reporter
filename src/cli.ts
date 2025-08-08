@@ -16,7 +16,7 @@ const program = new Command();
 program
   .name('vuln-reporter')
   .description('通用型漏洞掃描與報告工具 - 支援多種掃描工具，生成 Excel 報告並發送 Teams 通知')
-  .version('1.0.0');
+  .version('0.1.0');
 
 program
   .requiredOption('-i, --input <file>', '掃描報告 JSON 檔案路徑 (支援 Trivy 等格式)')
