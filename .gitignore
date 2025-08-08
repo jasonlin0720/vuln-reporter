@@ -11,3 +11,9 @@ trivy-report.json
 
 *.local
 *.local.*
+
+# 專案特定配置檔案 (每個使用者應該自己建立)
+.vuln-ignore.yml
+
+# 設計文件 (內部開發使用)
+*設計方案.md
