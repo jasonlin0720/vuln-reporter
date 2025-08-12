@@ -16,8 +16,7 @@ program
   .option('-s, --scanner <type>', '指定掃描工具類型 (auto, trivy)', 'auto')
   .option('-v, --verbose', '顯示詳細的漏洞資訊', false)
   .option('-d, --details-url <url>', '詳細報告連結 (可選)')
-  .option('--ignore-config <file>', '忽略規則配置檔案路徑', '.vuln-ignore.yml')
-  .option('-n, --notify-config <file>', '通知器配置檔案路徑', '.vuln-notify.yml')
+  .option('-c, --config <file>', '統一配置檔案路徑', '.vuln-config.yml')
   .option('-o, --output-file <file>', 'Excel 報告輸出檔案路徑', 'vulnerability-report.xlsx')
   .option('--exit-on-high-severity', '在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出', true)
   .option(

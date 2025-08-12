@@ -10,8 +10,7 @@ export function normalizeOptions(options: CliOptions): NormalizedCliOptions {
     scanner: options.scanner || 'auto',
     verbose: options.verbose || false,
     detailsUrl: options.detailsUrl,
-    ignoreConfig: options.ignoreConfig || '.vuln-ignore.yml',
-    notifyConfig: options.notifyConfig || '.vuln-notify.yml',
+    config: options.config || '.vuln-config.yml',
     outputFile: options.outputFile || 'vulnerability-report.xlsx',
     exitOnHighSeverity:
       options.exitOnHighSeverity !== undefined ? options.exitOnHighSeverity : true,
