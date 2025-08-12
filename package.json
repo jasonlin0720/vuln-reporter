@@ -1,6 +1,6 @@
 {
   "name": "vuln-reporter",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "通用型漏洞掃描與報告工具 - 用於解析 Trivy 掃描結果、生成 Excel 報告並發送 Teams 通知的 CLI 工具",
   "main": "dist/cli.js",
   "bin": {

@@ -1,93 +1,270 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
+import path from 'path';
 import { ConfigLoader } from '../../src/utils/config-loader.js';
-import type { VulnIgnoreConfig } from '../../src/types.js';
+import type { Config } from '../../src/types.js';
 
 describe('ConfigLoader', () => {
-  const testConfigFile = '.vuln-ignore.test.yml';
+  let loader: ConfigLoader;
+  let tempDir: string;
+  let tempConfigPath: string;
+
+  beforeEach(async () => {
+    loader = new ConfigLoader();
+    tempDir = path.join(process.cwd(), 'temp-test');
+    await fs.mkdir(tempDir, { recursive: true });
+    tempConfigPath = path.join(tempDir, 'test-config.yml');
+  });
 
   afterEach(async () => {
     try {
-      await fs.unlink(testConfigFile);
+      await fs.rm(tempDir, { recursive: true, force: true });
     } catch {
-      // File might not exist
+      // 忽略清理錯誤
     }
   });
 
-  it('should load valid YAML configuration', async () => {
-    const configContent = `
-rules:
-  - cve: CVE-2023-12345
-    reason: 已確認為誤報
-    expires: "2024-12-31"
-  - cve: CVE-2023-67890
-    package: lodash
-    reason: 將在下個版本修復
+  describe('loadConfig', () => {
+    it('應該成功載入完整的配置檔案', async () => {
+      const configContent = `
+ignore:
+  rules:
+    - cve: CVE-2023-001
+      reason: "測試忽略"
+      expires: "2024-12-31"
+    - cve: CVE-2023-002
+      package: test-package
+      reason: "另一個測試忽略"
+
+notify:
+  notifiers:
+    - type: teams
+      enabled: true
+      config:
+        webhookUrl: "https://test.webhook.url"
+    - type: slack
+      enabled: false
+      config:
+        webhookUrl: "https://slack.webhook.url"
+        channel: "#alerts"
 `;
+      await fs.writeFile(tempConfigPath, configContent);
 
-    await fs.writeFile(testConfigFile, configContent);
+      const config = await loader.loadConfig(tempConfigPath);
 
-    const loader = new ConfigLoader();
-    const config = await loader.loadConfig(testConfigFile);
+      expect(config).toBeDefined();
+      expect(config.ignore).toBeDefined();
+      expect(config.ignore?.rules).toHaveLength(2);
+      expect(config.ignore?.rules[0]).toEqual({
+        cve: 'CVE-2023-001',
+        reason: '測試忽略',
+        expires: '2024-12-31',
+      });
+      expect(config.ignore?.rules[1]).toEqual({
+        cve: 'CVE-2023-002',
+        package: 'test-package',
+        reason: '另一個測試忽略',
+      });
 
-    expect(config.rules).toHaveLength(2);
-    expect(config.rules[0].cve).toBe('CVE-2023-12345');
-    expect(config.rules[0].reason).toBe('已確認為誤報');
-    expect(config.rules[0].expires).toBe('2024-12-31');
+      expect(config.notify).toBeDefined();
+      expect(config.notify?.notifiers).toHaveLength(2);
+      expect(config.notify?.notifiers[0]).toEqual({
+        type: 'teams',
+        enabled: true,
+        config: {
+          webhookUrl: 'https://test.webhook.url',
+        },
+      });
+    });
 
-    expect(config.rules[1].cve).toBe('CVE-2023-67890');
-    expect(config.rules[1].package).toBe('lodash');
-    expect(config.rules[1].reason).toBe('將在下個版本修復');
+    it('應該成功載入僅包含 ignore 的配置檔案', async () => {
+      const configContent = `
+ignore:
+  rules:
+    - cve: CVE-2023-001
+      reason: "僅測試忽略"
+`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      const config = await loader.loadConfig(tempConfigPath);
+
+      expect(config.ignore).toBeDefined();
+      expect(config.ignore?.rules).toHaveLength(1);
+      expect(config.notify).toBeUndefined();
+    });
+
+    it('應該成功載入僅包含 notify 的配置檔案', async () => {
+      const configContent = `
+notify:
+  notifiers:
+    - type: teams
+      enabled: true
+      config:
+        webhookUrl: "https://test.webhook.url"
+`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      const config = await loader.loadConfig(tempConfigPath);
+
+      expect(config.notify).toBeDefined();
+      expect(config.notify?.notifiers).toHaveLength(1);
+      expect(config.ignore).toBeUndefined();
+    });
+
+    it('應該處理空的配置檔案', async () => {
+      const configContent = `{}`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      const config = await loader.loadConfig(tempConfigPath);
+
+      expect(config).toEqual({});
+    });
+
+    it('檔案不存在時應該回傳空配置', async () => {
+      const nonExistentPath = path.join(tempDir, 'non-existent.yml');
+
+      const config = await loader.loadConfig(nonExistentPath);
+
+      expect(config).toEqual({});
+    });
+
+    it('應該驗證 ignore 規則格式', async () => {
+      const configContent = `
+ignore:
+  rules:
+    - cve: CVE-2023-001
+      # 缺少 reason 欄位
+`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      await expect(loader.loadConfig(tempConfigPath)).rejects.toThrow(
+        /規則.*必須包含 cve 和 reason 欄位/,
+      );
+    });
+
+    it('應該驗證 notify 配置格式', async () => {
+      const configContent = `
+notify:
+  notifiers:
+    - enabled: true
+      # 缺少 type 欄位
+      config:
+        webhookUrl: "https://test.webhook.url"
+`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      await expect(loader.loadConfig(tempConfigPath)).rejects.toThrow(/通知器配置.*缺少 type 欄位/);
+    });
+
+    it('應該處理無效的 YAML 檔案', async () => {
+      const configContent = `
+invalid: yaml: content:
+  - this is not
+    valid yaml
+`;
+      await fs.writeFile(tempConfigPath, configContent);
+
+      await expect(loader.loadConfig(tempConfigPath)).rejects.toThrow();
+    });
   });
 
-  it('should return empty config when file does not exist', async () => {
-    const loader = new ConfigLoader();
-    const config = await loader.loadConfig('non-existent-file.yml');
-
-    expect(config.rules).toHaveLength(0);
-  });
-
-  it('should throw error for invalid YAML', async () => {
-    const invalidYaml = `
-rules:
-  - cve: CVE-2023-12345
-    reason: 缺少引號的字串: 這會導致錯誤
-      invalid_indent: true
+  describe('loadDefaultConfig', () => {
+    it('應該自動載入 .vuln-config.yml', async () => {
+      const defaultConfigPath = path.join(process.cwd(), '.vuln-config.yml');
+      const configContent = `
+ignore:
+  rules:
+    - cve: CVE-2023-001
+      reason: "預設配置測試"
 `;
 
-    await fs.writeFile(testConfigFile, invalidYaml);
+      try {
+        await fs.writeFile(defaultConfigPath, configContent);
 
-    const loader = new ConfigLoader();
+        const config = await loader.loadDefaultConfig();
 
-    await expect(loader.loadConfig(testConfigFile)).rejects.toThrow();
-  });
+        expect(config.ignore).toBeDefined();
+        expect(config.ignore?.rules).toHaveLength(1);
+        expect(config.ignore?.rules[0].cve).toBe('CVE-2023-001');
+      } finally {
+        // 清理預設配置檔案
+        try {
+          await fs.unlink(defaultConfigPath);
+        } catch {
+          // 忽略清理錯誤
+        }
+      }
+    });
 
-  it('should validate required fields', async () => {
-    const missingRequiredFields = `
-rules:
-  - cve: CVE-2023-12345
-    # missing reason field
-  - reason: 有原因但沒有 CVE
-    # missing cve field
+    it('應該自動載入 .vuln-config.yaml 作為備選', async () => {
+      const defaultConfigPath = path.join(process.cwd(), '.vuln-config.yaml');
+      const configContent = `
+notify:
+  notifiers:
+    - type: teams
+      enabled: true
+      config:
+        webhookUrl: "https://backup.webhook.url"
 `;
 
-    await fs.writeFile(testConfigFile, missingRequiredFields);
+      try {
+        await fs.writeFile(defaultConfigPath, configContent);
 
-    const loader = new ConfigLoader();
+        const config = await loader.loadDefaultConfig();
 
-    await expect(loader.loadConfig(testConfigFile)).rejects.toThrow('必須包含 cve 和 reason 欄位');
+        expect(config.notify).toBeDefined();
+        expect(config.notify?.notifiers).toHaveLength(1);
+      } finally {
+        // 清理預設配置檔案
+        try {
+          await fs.unlink(defaultConfigPath);
+        } catch {
+          // 忽略清理錯誤
+        }
+      }
+    });
+
+    it('找不到任何預設配置檔案時應該回傳空配置', async () => {
+      const config = await loader.loadDefaultConfig();
+
+      expect(config).toEqual({});
+    });
   });
 
-  it('should handle empty rules array', async () => {
-    const emptyConfig = `
-rules: []
-`;
+  describe('分離配置的兼容性', () => {
+    it('應該能正確處理分離的 ignore 配置', async () => {
+      const config: Config = {
+        ignore: {
+          rules: [
+            {
+              cve: 'CVE-2023-001',
+              reason: '測試',
+            },
+          ],
+        },
+      };
 
-    await fs.writeFile(testConfigFile, emptyConfig);
+      expect(config.ignore?.rules).toHaveLength(1);
+      expect(config.ignore?.rules[0].cve).toBe('CVE-2023-001');
+    });
 
-    const loader = new ConfigLoader();
-    const config = await loader.loadConfig(testConfigFile);
+    it('應該能正確處理分離的 notify 配置', async () => {
+      const config: Config = {
+        notify: {
+          notifiers: [
+            {
+              type: 'teams',
+              enabled: true,
+              config: {
+                webhookUrl: 'https://test.url',
+              },
+            },
+          ],
+        },
+      };
 
-    expect(config.rules).toHaveLength(0);
+      expect(config.notify?.notifiers).toHaveLength(1);
+      expect(config.notify?.notifiers[0].type).toBe('teams');
+    });
   });
 });

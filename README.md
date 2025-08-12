@@ -35,7 +35,7 @@ npx vuln-reporter --input scan-report.json --reporter-title "詳細掃描結果"
 npx vuln-reporter --input trivy-report.json --reporter-title "Trivy 掃描" --scanner trivy
 
 # 完整功能 - 包含自定義配置
-npx vuln-reporter --input scan-report.json --reporter-title "生產環境掃描" --notify-config custom-notify.yml --output-file "security-report.xlsx"
+npx vuln-reporter --input scan-report.json --reporter-title "生產環境掃描" --config custom-config.yml --output-file "security-report.xlsx"
 ```
 
 ### 安裝使用
@@ -60,33 +60,53 @@ vuln-reporter --input scan-report.json --reporter-title "我的專案安全掃�
 | `--scanner`                  | `-s`   | ❌   | `auto`                      | 指定掃描工具類型 (auto, trivy)              |
 | `--verbose`                  | `-v`   | ❌   | `false`                     | 顯示詳細的漏洞資訊                          |
 | `--details-url`              | `-d`   | ❌   | -                           | 詳細報告連結 (可選)                         |
-| `--ignore-config`            | -      | ❌   | `.vuln-ignore.yml`          | 忽略規則配置檔案路徑                        |
-| `--notify-config`            | `-n`   | ❌   | `.vuln-notify.yml`          | 通知器配置檔案路徑                          |
+| `--config`                   | `-c`   | ❌   | `.vuln-config.yml`          | 配置檔案路徑 (包含忽略規則和通知器設定)     |
 | `--output-file`              | `-o`   | ❌   | `vulnerability-report.xlsx` | Excel 報告輸出檔案路徑                      |
 | `--exit-on-high-severity`    | -      | ❌   | `true`                      | 發現 Critical/High 漏洞時以非零退出碼退出   |
 | `--no-exit-on-high-severity` | -      | ❌   | `false`                     | 發現 Critical/High 漏洞時不以非零退出碼退出 |
 
-## 漏洞忽略機制
+## 配置設定
 
-在專案根目錄建立 `.vuln-ignore.yml` 檔案來配置忽略規則：
+### 配置檔案
+
+在專案根目錄建立 `.vuln-config.yml` 檔案來設定忽略規則和通知器：
 
 ```yaml
-# .vuln-ignore.yml
-rules:
-  # 依 CVE ID 忽略
-  - cve: CVE-2023-26136
-    reason: '已確認為誤報'
-    expires: '2024-06-30' # 可選：設定到期日期
+# .vuln-config.yml - 整合配置檔案
 
-  # 依 CVE ID 和套件名稱忽略 (更精確)
-  - cve: CVE-2022-25883
-    package: semver
-    reason: '等待下個維護窗口更新'
-    expires: '2024-03-31'
+# 漏洞忽略規則配置
+ignore:
+  rules:
+    # 依 CVE ID 忽略
+    - cve: CVE-2023-26136
+      reason: '已確認為誤報'
+      expires: '2024-06-30' # 可選：設定到期日期
 
-  # 永久忽略 (不設定 expires)
-  - cve: CVE-2023-26115
-    reason: '開發依賴套件，不影響生產環境'
+    # 依 CVE ID 和套件名稱忽略 (更精確)
+    - cve: CVE-2022-25883
+      package: semver
+      reason: '等待下個維護窗口更新'
+      expires: '2024-03-31'
+
+    # 永久忽略 (不設定 expires)
+    - cve: CVE-2023-26115
+      reason: '開發依賴套件，不影響生產環境'
+
+# 通知器配置
+notify:
+  notifiers:
+    # Microsoft Teams 通知
+    - type: teams
+      enabled: true
+      config:
+        webhookUrl: 'https://outlook.office.com/webhook/your-webhook-url-here'
+
+    # 未來可擴展的其他通知器範例：
+    # - type: slack
+    #   enabled: false
+    #   config:
+    #     webhookUrl: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    #     channel: "#security-alerts"
 ```
 
 ### 忽略規則欄位說明
@@ -96,37 +116,14 @@ rules:
 - `package`: (可選) 特定套件名稱，提供更精確的匹配
 - `expires`: (可選) 忽略規則到期日期 (YYYY-MM-DD 格式)
 
-## 通知器設定
-
-### 通知器配置檔案
-
-在專案根目錄建立 `.vuln-notify.yml` 檔案來配置通知器：
-
-```yaml
-# .vuln-notify.yml
-notifiers:
-  # Microsoft Teams 通知
-  - type: teams
-    enabled: true
-    config:
-      webhookUrl: 'https://outlook.office.com/webhook/your-webhook-url-here'
-
-  # 未來可擴展的其他通知器範例：
-  # - type: slack
-  #   enabled: false
-  #   config:
-  #     webhookUrl: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-  #     channel: "#security-alerts"
-```
-
-### Teams 通知設定
+### 通知器設定
 
 #### 取得 Webhook URL
 
 1. 在 Teams 頻道中點選「...」→「連接器」
 2. 搜尋並設定「Incoming Webhook」
 3. 輸入名稱和圖片，取得 Webhook URL
-4. 將 URL 設定在 `.vuln-notify.yml` 配置檔案中
+4. 將 URL 設定在 `.vuln-config.yml` 配置檔案的 `notify.notifiers` 區段中
 
 #### 通知內容
 
@@ -151,8 +148,7 @@ Teams 通知會包含：
 專案提供完整的範例檔案：
 
 - `examples/trivy-report-sample.json`: 範例 Trivy 報告
-- `examples/.vuln-ignore.yml`: 範例忽略規則配置
-- `examples/.vuln-notify.yml`: 範例通知器配置
+- `examples/.vuln-config.yml`: 範例配置檔案 (包含忽略規則和通知器設定)
 - `examples/run-example.bat`: Windows 範例執行腳本
 - `examples/run-example.sh`: Linux/Mac 範例執行腳本
 
@@ -201,8 +197,8 @@ npx vuln-reporter --input .\trivy-report.json --reporter-title "Trivy 本地掃�
 # 1. 執行 Trivy 掃描
 docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --format json --output /app/trivy-report.json
 
-# 2. 複製忽略規則範例（可選）
-cp examples/.vuln-ignore.yml .
+# 2. 複製配置檔案範例（可選）
+cp examples/.vuln-config.yml .
 
 # 3. 分析掃描結果
 npx vuln-reporter --input .\trivy-report.json --reporter-title "Trivy 本地掃描" --output-file "local-scan-report.xlsx" --verbose
@@ -240,7 +236,7 @@ docker run --rm -v ${PWD}:/app aquasec/trivy:latest fs /app --ignore-unfixed --f
       --input trivy-report.json \
       --reporter-title "${{ github.repository }} Security Scan" \
       --details-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-      --notify-config .vuln-notify.yml
+      --config .vuln-config.yml
 ```
 
 ### GitLab CI
@@ -253,7 +249,7 @@ security_report:
       --input trivy-report.json
       --reporter-title "${CI_PROJECT_NAME} Security Scan"
       --details-url "${CI_PIPELINE_URL}"
-      --notify-config .vuln-notify.yml
+      --config .vuln-config.yml
 ```
 
 ## 退出碼控制
@@ -393,9 +389,9 @@ pnpm dev --input examples/trivy-report-sample.json --reporter-title "本地測�
 # 測試 Excel 報告生成
 pnpm dev --input examples/trivy-report-sample.json --reporter-title "Excel 測試" --output-file "local-test.xlsx"
 
-# 測試忽略規則 (需要先複製範例配置)
-cp examples/.vuln-ignore.yml .
-pnpm dev --input examples/trivy-report-sample.json --reporter-title "忽略規則測試" --verbose
+# 測試配置檔案 (需要先複製範例配置)
+cp examples/.vuln-config.yml .
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "配置測試" --verbose
 ```
 
 ### 與發布版本比較

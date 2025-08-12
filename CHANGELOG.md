@@ -5,6 +5,82 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本號遵循 [語義化版本](https://semver.org/spec/v2.0.0.html) 規範。
 
+## [0.1.2] - 2025-08-12
+
+### 💥 重大變更
+
+- **配置檔案整合** - 將原本分離的 `.vuln-ignore.yml` 和 `.vuln-notify.yml` 合併為單一配置檔案 `.vuln-config.yml`
+- **CLI 選項簡化** - 移除 `--ignore-config` 和 `--notify-config` 選項，改用單一 `--config` / `-c` 選項
+
+### 新增功能
+
+- 🔧 **整合配置管理** - 新增統一的配置檔案結構，提升配置管理的一致性
+- 📋 **增強配置載入器** - `ConfigLoader` 現在支援載入包含忽略規則和通知器設定的整合配置
+- 🎯 **自動配置檢測** - 支援自動載入預設配置檔案 (`.vuln-config.yml` 或 `.vuln-config.yaml`)
+- ✅ **完整驗證機制** - 新增對整合配置檔案中 `ignore` 和 `notify` 區段的格式驗證
+
+### 改進
+
+- 📁 **簡化專案結構** - 減少配置檔案數量，降低使用者設定複雜度
+- 🔄 **重構核心處理器** - `VulnerabilityProcessor` 適配新的整合配置載入邏輯
+- 📝 **統一配置格式** - 使用巢狀結構組織忽略規則和通知器設定，提升可讀性
+- 🧪 **擴展測試覆蓋** - 新增整合配置檔案的完整測試案例
+
+### 技術變更
+
+- **新增檔案**:
+  - `examples/.vuln-config.yml` - 整合配置檔案範例
+
+- **移除檔案**:
+  - `examples/.vuln-ignore.yml` - 已整合至 `.vuln-config.yml`
+  - `examples/.vuln-notify.yml` - 已整合至 `.vuln-config.yml`
+  - `src/utils/notify-config-loader.ts` - 功能已整合至 `ConfigLoader`
+
+- **更新檔案**:
+  - `src/cli.ts` - 移除分離的配置選項，改用單一 `--config` 選項
+  - `src/core/vulnerability-processor.ts` - 適配整合配置載入邏輯
+  - `src/types.ts` - 新增 `Config` 介面以支援整合配置結構
+  - `src/utils/config-loader.ts` - 重構為支援載入整合配置檔案
+  - `src/utils/normalizeOptions.ts` - 更新預設選項處理
+  - `tests/` - 更新所有相關測試以適配新的配置結構
+
+### 向後相容性
+
+- ❌ **不向後相容** - 此版本移除了分離配置檔案的支援
+- 🔄 **遷移指南** - 使用者需要將現有的 `.vuln-ignore.yml` 和 `.vuln-notify.yml` 手動合併至 `.vuln-config.yml`
+- 📋 **CLI 變更** - `--ignore-config` 和 `--notify-config` 選項已移除，改用 `--config`
+
+### 遷移說明
+
+從 0.1.1 升級到 0.1.2 需要進行以下步驟：
+
+1. **合併配置檔案**：
+
+   ```yaml
+   # 新的 .vuln-config.yml 格式
+   ignore:
+     rules:
+       # 將原本 .vuln-ignore.yml 的 rules 內容移至此處
+
+   notify:
+     notifiers:
+       # 將原本 .vuln-notify.yml 的 notifiers 內容移至此處
+   ```
+
+2. **更新 CLI 指令**：
+
+   ```bash
+   # 舊版指令
+   vuln-reporter --ignore-config custom.yml --notify-config notify.yml
+
+   # 新版指令
+   vuln-reporter --config custom-config.yml
+   ```
+
+3. **更新 CI/CD 配置**：
+   - 將 `--ignore-config` 和 `--notify-config` 參數合併為 `--config`
+   - 確保配置檔案採用新的整合格式
+
 ## [0.1.1] - 2025-08-08
 
 ### 新增功能

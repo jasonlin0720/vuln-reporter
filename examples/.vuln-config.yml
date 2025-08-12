@@ -1,0 +1,62 @@
+# 配置檔案範例
+# 整合忽略規則和通知器配置於單一檔案
+
+# 漏洞忽略規則配置
+ignore:
+  rules:
+    # 依 CVE ID 忽略
+    - cve: CVE-2023-26136
+      reason: '已確認為誤報，不影響我們的使用情境'
+      expires: '2024-06-30' # 可選：設定到期日期
+
+    # 依 CVE ID 和套件名稱忽略 (更精確)
+    - cve: CVE-2022-25883
+      package: semver
+      reason: '等待下個維護窗口更新，已有暫時性修復措施'
+      expires: '2024-03-31'
+
+    # 永久忽略 (不設定 expires)
+    - cve: CVE-2023-26115
+      reason: '開發依賴套件，不影響生產環境安全'
+
+    # 另一個範例
+    - cve: CVE-2023-26158
+      package: follow-redirects
+      reason: '已評估風險，現有版本在我們的使用場景下安全'
+      expires: '2024-08-15'
+
+# 通知器配置
+notify:
+  notifiers:
+    # Microsoft Teams 通知
+    - type: teams
+      enabled: true
+      config:
+        webhookUrl: 'https://outlook.office.com/webhook/your-webhook-url-here'
+
+    # 未來可擴展的其他通知器範例：
+    # Slack 通知 (範例)
+    # - type: slack
+    #   enabled: false
+    #   config:
+    #     webhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#security-alerts'
+    #     username: 'vuln-reporter-bot'
+
+    # Discord 通知 (範例)
+    # - type: discord
+    #   enabled: false
+    #   config:
+    #     webhookUrl: 'https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK'
+    #     username: 'Security Alert'
+
+    # 電子郵件通知 (未實作，僅示範結構)
+    # - type: email
+    #   enabled: false
+    #   config:
+    #     smtpHost: "smtp.gmail.com"
+    #     smtpPort: 587
+    #     username: "your-email@example.com"
+    #     password: "your-app-password"
+    #     to: ["security-team@example.com", "devops@example.com"]
+    #     subject: "安全掃描報告"
