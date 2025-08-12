@@ -47,7 +47,7 @@ vuln-reporter/
 │   └── utils/             # 工具函數測試
 ├── examples/              # 範例檔案
 │   ├── trivy-report-sample.json
-│   ├── .vuln-ignore.yml
+│   ├── .vuln-config.yml
 │   └── run-example.*
 └── dist/                  # 編譯後的輸出
 ```
@@ -94,11 +94,10 @@ pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報�
 pnpm dev --input examples/trivy-report-sample.json --reporter-title "Trivy 報告" --scanner trivy
 
 # 包含自定義配置檔案
-pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告" --ignore-config examples/.vuln-ignore.yml --notify-config examples/.vuln-notify.yml
+pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告" --config examples/.vuln-config.yml
 
 # 使用預設配置檔案 (需要先複製範例配置)
-cp examples/.vuln-ignore.yml .
-cp examples/.vuln-notify.yml .
+cp examples/.vuln-config.yml .
 pnpm dev --input examples/trivy-report-sample.json --reporter-title "測試報告 (套用預設配置)" --verbose
 
 # 執行範例腳本 (Windows)
@@ -126,7 +125,7 @@ examples\run-example.bat
 4. **核心處理器**: 使用 `VulnerabilityProcessor` 統一處理流程
 5. **類型安全**: 完整的 TypeScript 類型定義
 6. **標準化處理**: 統一的 `StandardVulnerability` 和 `NotificationData` 格式
-7. **配置驅動**: 透過 YAML 配置檔案管理忽略規則和通知器
+7. **配置驅動**: 透過單一整合的 YAML 配置檔案管理忽略規則和通知器
 8. **錯誤處理**: 完善的錯誤處理和使用者提示
 9. **CI/CD 友善**: 可自定義退出碼行為，適應不同部署需求
 
@@ -186,8 +185,9 @@ examples\run-example.bat
 
 #### 配置載入器 (`src/utils/config-loader.ts`)
 
-- 讀取 YAML 忽略規則配置
-- 驗證配置格式
+- 讀取整合的 YAML 配置檔案（包含忽略規則和通知器設定）
+- 驗證配置格式和結構
+- 支援自動載入預設配置檔案
 - 測試: `tests/utils/config-loader.test.ts`
 
 #### 選項標準化 (`src/utils/normalizeOptions.ts`)
@@ -220,13 +220,6 @@ examples\run-example.bat
 - 支援新舊介面（向後相容）
 - 測試: `tests/notifiers/teams-notifier.test.ts`
 
-#### 通知器配置載入器 (`src/utils/notify-config-loader.ts`)
-
-- 載入 YAML 通知器配置
-- 支援多個通知器同時配置
-- 自動載入預設配置檔案
-- 測試: `tests/utils/notify-config-loader.test.ts`
-
 ## 安全注意事項
 
 本工具專門用於**防護型安全用途**：
@@ -246,22 +239,22 @@ examples\run-example.bat
    - 確認檔案未被其他程式開啟
 
 2. **通知發送失敗**
-   - 檢查 `.vuln-notify.yml` 配置檔案格式
+   - 檢查 `.vuln-config.yml` 配置檔案中的 `notify` 區段格式
    - 驗證 Webhook URL 格式
    - 檢查網路連線
    - 確認通知平台設定正確
 
 3. **忽略規則不生效**
-   - 確認 `.vuln-ignore.yml` 檔案位於正確位置
-   - 檢查 YAML 格式是否正確
+   - 確認 `.vuln-config.yml` 檔案位於正確位置
+   - 檢查配置檔案中的 `ignore` 區段格式
    - 驗證 CVE ID 和套件名稱是否完全匹配
-   - 使用 `--ignore-config` 指定自定義配置檔案路徑
+   - 使用 `--config` 指定自定義配置檔案路徑
 
-4. **通知器配置問題**
-   - 確認 `.vuln-notify.yml` 檔案格式正確
-   - 檢查通知器類型是否支援
-   - 驗證各通知器的配置參數
-   - 使用 `--notify-config` 指定自定義配置檔案路徑
+4. **配置檔案問題**
+   - 確認 `.vuln-config.yml` 檔案格式正確
+   - 檢查 `ignore` 和 `notify` 區段的結構
+   - 驗證各配置參數的正確性
+   - 使用 `--config` 指定自定義配置檔案路徑
 
 ### 除錯模式
 
@@ -338,13 +331,14 @@ NODE_DEBUG=* pnpm dev --input examples/trivy-report-sample.json --reporter-title
 
 3. **配置檔案支援**：
    ```yaml
-   # .vuln-notify.yml
-   notifiers:
-     - type: slack
-       enabled: true
-       config:
-         webhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-         channel: '#security-alerts'
+   # .vuln-config.yml
+   notify:
+     notifiers:
+       - type: slack
+         enabled: true
+         config:
+           webhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+           channel: '#security-alerts'
    ```
 
 #### 其他擴展
@@ -369,5 +363,5 @@ NODE_DEBUG=* pnpm dev --input examples/trivy-report-sample.json --reporter-title
 - **解耦合**: 新工具和通知器不影響現有功能
 - **可測試**: 每個組件都有獨立測試
 - **擴展性**: 輕鬆添加新的掃描工具和通知平台支援
-- **配置驅動**: 透過 YAML 配置檔案管理複雜設定
+- **配置驅動**: 透過單一整合的 YAML 配置檔案管理複雜設定
 - **向後相容**: 保持 API 穩定性，支援漸進式升級
