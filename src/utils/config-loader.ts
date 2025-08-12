@@ -1,16 +1,16 @@
 import { promises as fs } from 'fs';
 import * as yaml from 'js-yaml';
-import type { UnifiedConfig, VulnIgnoreRule, NotifierConfig } from '../types.js';
+import type { Config, VulnIgnoreRule } from '../types.js';
 
-export class UnifiedConfigLoader {
+export class ConfigLoader {
   /**
-   * 載入統一配置檔案
+   * 載入配置檔案
    * @param configPath 配置檔案路徑
    */
-  async loadConfig(configPath: string): Promise<UnifiedConfig> {
+  async loadConfig(configPath: string): Promise<Config> {
     try {
       const content = await fs.readFile(configPath, 'utf-8');
-      const config = yaml.load(content) as UnifiedConfig;
+      const config = yaml.load(content) as Config;
 
       if (!config) {
         return {};
@@ -37,17 +37,17 @@ export class UnifiedConfigLoader {
   }
 
   /**
-   * 自動載入預設統一配置檔案
+   * 自動載入預設配置檔案
    * 依序嘗試載入 .vuln-config.yml, .vuln-config.yaml
    */
-  async loadDefaultConfig(): Promise<UnifiedConfig> {
+  async loadDefaultConfig(): Promise<Config> {
     const defaultPaths = ['.vuln-config.yml', '.vuln-config.yaml'];
 
     for (const path of defaultPaths) {
       try {
         const config = await this.loadConfig(path);
         if (Object.keys(config).length > 0) {
-          console.log(`📋 載入統一配置: ${path}`);
+          console.log(`📋 載入配置: ${path}`);
           return config;
         }
       } catch {

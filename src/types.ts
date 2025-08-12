@@ -57,8 +57,8 @@ export interface NotifierConfig {
   enabled?: boolean; // 是否啟用，預設 true
 }
 
-// 統一配置檔案結構
-export interface UnifiedConfig {
+// 配置檔案結構
+export interface Config {
   ignore?: VulnIgnoreConfig;
   notify?: NotifyConfig;
 }
@@ -74,7 +74,7 @@ export interface CliOptions {
   scanner?: string;
   verbose?: boolean;
   detailsUrl?: string;
-  config?: string; // 統一配置檔案路徑
+  config?: string; // 配置檔案路徑
   outputFile?: string;
   exitOnHighSeverity?: boolean; // 是否在發現 Critical 或 High 嚴重性漏洞時以非零退出碼退出
 }

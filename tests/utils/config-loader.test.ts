@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { UnifiedConfigLoader } from '../../src/utils/unified-config-loader.js';
-import type { UnifiedConfig } from '../../src/types.js';
+import { ConfigLoader } from '../../src/utils/config-loader.js';
+import type { Config } from '../../src/types.js';
 
-describe('UnifiedConfigLoader', () => {
-  let loader: UnifiedConfigLoader;
+describe('ConfigLoader', () => {
+  let loader: ConfigLoader;
   let tempDir: string;
   let tempConfigPath: string;
 
   beforeEach(async () => {
-    loader = new UnifiedConfigLoader();
+    loader = new ConfigLoader();
     tempDir = path.join(process.cwd(), 'temp-test');
     await fs.mkdir(tempDir, { recursive: true });
     tempConfigPath = path.join(tempDir, 'test-config.yml');
@@ -25,7 +25,7 @@ describe('UnifiedConfigLoader', () => {
   });
 
   describe('loadConfig', () => {
-    it('應該成功載入完整的統一配置檔案', async () => {
+    it('應該成功載入完整的配置檔案', async () => {
       const configContent = `
 ignore:
   rules:
@@ -233,7 +233,7 @@ notify:
 
   describe('分離配置的兼容性', () => {
     it('應該能正確處理分離的 ignore 配置', async () => {
-      const config: UnifiedConfig = {
+      const config: Config = {
         ignore: {
           rules: [
             {
@@ -249,7 +249,7 @@ notify:
     });
 
     it('應該能正確處理分離的 notify 配置', async () => {
-      const config: UnifiedConfig = {
+      const config: Config = {
         notify: {
           notifiers: [
             {
