@@ -13,12 +13,10 @@ trivy-report.json
 *.local.*
 
 # 專案特定配置檔案 (每個使用者應該自己建立)
-.vuln-ignore.yml
-.vuln-notify.yml
+.vuln-config.yml
 
 # 但保留 examples 目錄中的範例配置檔案
-!examples/**/.vuln-ignore.yml
-!examples/**/.vuln-notify.yml
+!examples/**/.vuln-config.yml
 
 # 設計文件 (內部開發使用)
 *設計方案.md
